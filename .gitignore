@@ -1,0 +1,8 @@
+Debug/
+Release/
+.vs/
+monte_carlo_pricer_cuda.sln
+monte_carlo_pricer_cuda/monte_carlo_pricer_cuda.vcxproj
+monte_carlo_pricer_cuda/monte_carlo_pricer_cuda.vcxproj.filters
+monte_carlo_pricer_cuda/monte_carlo_pricer_cuda.vcxproj.user
+monte_carlo_pricer_cuda/main.cpp
