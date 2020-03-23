@@ -23,7 +23,6 @@ void gbm_cuda() {
 	double strike{ 100.0 };
 
 	sde_builder_cuda::GeometricBrownianMotion<double> gbm{ rate,sigma,s };
-	//sde_builder_cuda::ArithmeticBrownianMotion<double> abm{ rate,sigma,s };
 	FdmCUDA<1, double> fdm{ maturity,numberSteps };
 
 	{
@@ -124,7 +123,7 @@ void heston_cuda() {
 
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto paths = fdm(heston, numberIterations);
+		auto paths = fdm(heston, numberIterations, FDMScheme::MilsteinScheme);
 		auto end = std::chrono::system_clock::now();
 		std::cout << "Generating on 1D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
@@ -147,7 +146,7 @@ void heston_cuda() {
 
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto paths = fdm(heston, numberIterations);
+		auto paths = fdm(heston, numberIterations,FDMScheme::MilsteinScheme,GPUConfiguration::Grid2D);
 		auto end = std::chrono::system_clock::now();
 
 		std::cout << "Generating on 2D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
@@ -173,7 +172,7 @@ void heston_cuda() {
 	}
 
 	auto begin = std::chrono::system_clock::now();
-	auto paths = fdm(heston, numberIterations);
+	auto paths = fdm(heston, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid3D);
 	auto end = std::chrono::system_clock::now();
 
 	std::cout << "Generating on 3D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";

@@ -229,7 +229,418 @@ namespace heston_kernels {
 	namespace milstein_scheme {
 
 
+		__global__
+			void generatePathsKernelDouble1D(sde_builder_cuda::HestonModel<double> heston, double *d_paths, curandState_t* states,
+				unsigned int nPaths, unsigned int nSteps, double dt) {
+			// Path index
+			const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
+			if (idx < nPaths) {
+				double last = heston.init1();
+				double var = heston.init2();
+				double last_new{};
+				double var_new{};
+				double z1{};
+				double z2{};
+				d_paths[idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z1 = curand_normal(&states[idx]);
+					z2 = curand_normal(&states[idx]);
+
+					last_new = last +
+						heston.drift1(i*dt, last,var)*dt + 
+						heston.diffusion1(i*dt, last, var) *
+						sqrtf(dt) * z1 +
+						0.5*heston.diffusion1(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion1(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt)*((z1)*(z1)-1.0) +
+						0.5*(heston.rho())*heston.diffusion2(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*((z1)*(z1)-1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion1(i *dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					var_new = var +
+						heston.drift2(i*dt, last, var)*dt +
+						heston.diffusion2(i*dt, last, var) *
+						sqrtf(dt) *
+						(heston.rho() * z1 + sqrtf(1.0 - (heston.rho() * heston.rho())) * z2) +
+						0.5*(heston.rho())*heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt) * ((z1)*(z1)-1.0) +
+						0.5 * heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion2(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP))*
+							(dt) * (((heston.rho())*z1 + std::sqrt(1.0 - (heston.rho())*(heston.rho()))*z2)*
+						((heston.rho())*z1 + sqrtf(1.0 - (heston.rho())*(heston.rho()))*z2) - 1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					d_paths[k] = last_new;
+					last = last_new;
+					var = var_new;
+					i++;
+				}
+			}
+		}
+
+		__global__
+			void generatePathsKernelFloat1D(sde_builder_cuda::HestonModel<float> heston, float *d_paths, curandState_t* states,
+				unsigned int nPaths, unsigned int nSteps, float dt) {
+			// Path index
+			const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+			if (idx < nPaths) {
+				float last = heston.init1();
+				float var = heston.init2();
+				float last_new{};
+				float var_new{};
+				float z1{};
+				float z2{};
+				d_paths[idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z1 = curand_normal(&states[idx]);
+					z2 = curand_normal(&states[idx]);
+
+					last_new = last +
+						heston.drift1(i*dt, last, var)*dt +
+						heston.diffusion1(i*dt, last, var) *
+						sqrtf(dt) * z1 +
+						0.5*heston.diffusion1(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion1(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt)*((z1)*(z1)-1.0) +
+						0.5*(heston.rho())*heston.diffusion2(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*((z1)*(z1)-1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion1(i *dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					var_new = var +
+						heston.drift2(i*dt, last, var)*dt +
+						heston.diffusion2(i*dt, last, var) *
+						sqrtf(dt) *
+						(heston.rho() * z1 + sqrtf(1.0 - (heston.rho() * heston.rho())) * z2) +
+						0.5*(heston.rho())*heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt) * ((z1)*(z1)-1.0) +
+						0.5 * heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion2(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP))*
+							(dt) * (((heston.rho())*z1 + std::sqrt(1.0 - (heston.rho())*(heston.rho()))*z2)*
+						((heston.rho())*z1 + sqrtf(1.0 - (heston.rho())*(heston.rho()))*z2) - 1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					d_paths[k] = last_new;
+					last = last_new;
+					var = var_new;
+					i++;
+				}
+			}
+		}
+
+		__global__
+			void generatePathsKernelDouble2D(sde_builder_cuda::HestonModel<double> heston, double *d_paths, curandState_t* states,
+				unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nSteps, double dt) {
+			// Path index
+			const unsigned int c_idx = blockIdx.x * blockDim.x + threadIdx.x;
+			const unsigned int r_idx = blockIdx.y * blockDim.y + threadIdx.y;
+			const unsigned int t_idx = c_idx + nPathsWidth * r_idx;
+			const unsigned int nPaths = nPathsWidth * nPathsHeight;
+
+			if (t_idx < nPaths) {
+				double last = heston.init1();
+				double var = heston.init2();
+				double last_new{};
+				double var_new{};
+				double z1{};
+				double z2{};
+				d_paths[t_idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = t_idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z1 = curand_normal(&states[t_idx]);
+					z2 = curand_normal(&states[t_idx]);
+
+					last_new = last +
+						heston.drift1(i*dt, last, var)*dt +
+						heston.diffusion1(i*dt, last, var) *
+						sqrtf(dt) * z1 +
+						0.5*heston.diffusion1(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion1(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt)*((z1)*(z1)-1.0) +
+						0.5*(heston.rho())*heston.diffusion2(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*((z1)*(z1)-1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion1(i *dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					var_new = var +
+						heston.drift2(i*dt, last, var)*dt +
+						heston.diffusion2(i*dt, last, var) *
+						sqrtf(dt) *
+						(heston.rho() * z1 + sqrtf(1.0 - (heston.rho() * heston.rho())) * z2) +
+						0.5*(heston.rho())*heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt) * ((z1)*(z1)-1.0) +
+						0.5 * heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion2(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP))*
+							(dt) * (((heston.rho())*z1 + std::sqrt(1.0 - (heston.rho())*(heston.rho()))*z2)*
+						((heston.rho())*z1 + sqrtf(1.0 - (heston.rho())*(heston.rho()))*z2) - 1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					d_paths[k] = last_new;
+					last = last_new;
+					var = var_new;
+					i++;
+				}
+			}
+		}
+
+		__global__
+			void generatePathsKernelFloat2D(sde_builder_cuda::HestonModel<float> heston, float *d_paths, curandState_t* states,
+				unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nSteps, float dt) {
+			// Path index
+			const unsigned int c_idx = blockIdx.x * blockDim.x + threadIdx.x;
+			const unsigned int r_idx = blockIdx.y * blockDim.y + threadIdx.y;
+			const unsigned int t_idx = c_idx + nPathsWidth * r_idx;
+			const unsigned int nPaths = nPathsWidth * nPathsHeight;
+
+			if (t_idx < nPaths) {
+				float last = heston.init1();
+				float var = heston.init2();
+				float last_new{};
+				float var_new{};
+				float z1{};
+				float z2{};
+				d_paths[t_idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = t_idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z1 = curand_normal(&states[t_idx]);
+					z2 = curand_normal(&states[t_idx]);
+
+					last_new = last +
+						heston.drift1(i*dt, last, var)*dt +
+						heston.diffusion1(i*dt, last, var) *
+						sqrtf(dt) * z1 +
+						0.5*heston.diffusion1(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion1(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt)*((z1)*(z1)-1.0) +
+						0.5*(heston.rho())*heston.diffusion2(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*((z1)*(z1)-1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion1(i *dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					var_new = var +
+						heston.drift2(i*dt, last, var)*dt +
+						heston.diffusion2(i*dt, last, var) *
+						sqrtf(dt) *
+						(heston.rho() * z1 + sqrtf(1.0 - (heston.rho() * heston.rho())) * z2) +
+						0.5*(heston.rho())*heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt) * ((z1)*(z1)-1.0) +
+						0.5 * heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion2(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP))*
+							(dt) * (((heston.rho())*z1 + std::sqrt(1.0 - (heston.rho())*(heston.rho()))*z2)*
+						((heston.rho())*z1 + sqrtf(1.0 - (heston.rho())*(heston.rho()))*z2) - 1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					d_paths[k] = last_new;
+					last = last_new;
+					var = var_new;
+					i++;
+				}
+			}
+		}
+
+
+		__global__
+			void generatePathsKernelDouble3D(sde_builder_cuda::HestonModel<double> heston, double *d_paths, curandState_t* states,
+				unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathsDepth,
+				unsigned int nSteps, double dt) {
+			// Path index
+			const unsigned int c_idx = blockIdx.x * blockDim.x + threadIdx.x;
+			const unsigned int r_idx = blockIdx.y * blockDim.y + threadIdx.y;
+			const unsigned int l_idx = blockIdx.z * blockDim.z + threadIdx.z;
+			const unsigned int t_idx = c_idx + nPathsWidth * r_idx + nPathsWidth * nPathsHeight*l_idx;
+			const unsigned int nPaths = nPathsWidth * nPathsHeight * nPathsDepth;
+
+			if (t_idx < nPaths) {
+				double last = heston.init1();
+				double var = heston.init2();
+				double last_new{};
+				double var_new{};
+				double z1{};
+				double z2{};
+				d_paths[t_idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = t_idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z1 = curand_normal(&states[t_idx]);
+					z2 = curand_normal(&states[t_idx]);
+
+					last_new = last +
+						heston.drift1(i*dt, last, var)*dt +
+						heston.diffusion1(i*dt, last, var) *
+						sqrtf(dt) * z1 +
+						0.5*heston.diffusion1(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion1(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt)*((z1)*(z1)-1.0) +
+						0.5*(heston.rho())*heston.diffusion2(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*((z1)*(z1)-1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion1(i *dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					var_new = var +
+						heston.drift2(i*dt, last, var)*dt +
+						heston.diffusion2(i*dt, last, var) *
+						sqrtf(dt) *
+						(heston.rho() * z1 + sqrtf(1.0 - (heston.rho() * heston.rho())) * z2) +
+						0.5*(heston.rho())*heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt) * ((z1)*(z1)-1.0) +
+						0.5 * heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion2(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP))*
+							(dt) * (((heston.rho())*z1 + std::sqrt(1.0 - (heston.rho())*(heston.rho()))*z2)*
+						((heston.rho())*z1 + sqrtf(1.0 - (heston.rho())*(heston.rho()))*z2) - 1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					d_paths[k] = last_new;
+					last = last_new;
+					var = var_new;
+					i++;
+				}
+			}
+		}
+
+		__global__
+			void generatePathsKernelFloat3D(sde_builder_cuda::HestonModel<float> heston, float *d_paths, curandState_t* states,
+				unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathsDepth,
+				unsigned int nSteps, float dt) {
+			// Path index
+			const unsigned int c_idx = blockIdx.x * blockDim.x + threadIdx.x;
+			const unsigned int r_idx = blockIdx.y * blockDim.y + threadIdx.y;
+			const unsigned int l_idx = blockIdx.z * blockDim.z + threadIdx.z;
+			const unsigned int t_idx = c_idx + nPathsWidth * r_idx + nPathsWidth * nPathsHeight*l_idx;
+			const unsigned int nPaths = nPathsWidth * nPathsHeight * nPathsDepth;
+
+			if (t_idx < nPaths) {
+				float last = heston.init1();
+				float var = heston.init2();
+				float last_new{};
+				float var_new{};
+				float z1{};
+				float z2{};
+				d_paths[t_idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = t_idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z1 = curand_normal(&states[t_idx]);
+					z2 = curand_normal(&states[t_idx]);
+
+					last_new = last +
+						heston.drift1(i*dt, last, var)*dt +
+						heston.diffusion1(i*dt, last, var) *
+						sqrtf(dt) * z1 +
+						0.5*heston.diffusion1(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion1(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt)*((z1)*(z1)-1.0) +
+						0.5*(heston.rho())*heston.diffusion2(i*dt, last, var) *
+						((heston.diffusion1(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*((z1)*(z1)-1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion1(i *dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion1(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					var_new = var +
+						heston.drift2(i*dt, last, var)*dt +
+						heston.diffusion2(i*dt, last, var) *
+						sqrtf(dt) *
+						(heston.rho() * z1 + sqrtf(1.0 - (heston.rho() * heston.rho())) * z2) +
+						0.5*(heston.rho())*heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP))*
+							(dt) * ((z1)*(z1)-1.0) +
+						0.5 * heston.diffusion2(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last, var + 0.5*DIFF_STEP) -
+							heston.diffusion2(i*dt, last, var - 0.5*DIFF_STEP)) / (DIFF_STEP))*
+							(dt) * (((heston.rho())*z1 + std::sqrt(1.0 - (heston.rho())*(heston.rho()))*z2)*
+						((heston.rho())*z1 + sqrtf(1.0 - (heston.rho())*(heston.rho()))*z2) - 1.0) +
+						sqrtf(1.0 - (heston.rho())*(heston.rho()))*
+						heston.diffusion1(i*dt, last, var)*
+						((heston.diffusion2(i*dt, last + 0.5*DIFF_STEP, var) -
+							heston.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
+							(dt)*z1*z2;
+
+					d_paths[k] = last_new;
+					last = last_new;
+					var = var_new;
+					i++;
+				}
+			}
+		}
 
 
 
@@ -261,7 +672,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet impolemented!");
+			heston_kernels::milstein_scheme::generatePathsKernelDouble1D << <threadsPerBlock, blocksPerGrid >> >(this->heston_, d_paths, states,
+				nPaths, nSteps, dt);
 		}
 		break;
 		}
@@ -288,7 +700,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet impolemented!");
+			heston_kernels::milstein_scheme::generatePathsKernelDouble2D << <gridSize, blockSize >> > (this->heston_, d_paths, states,
+				widthSize, heightSize, nSteps, dt);
 		}
 		break;
 		}
@@ -320,7 +733,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet impolemented!");
+			heston_kernels::milstein_scheme::generatePathsKernelDouble3D << <gridSize, blockSize >> > (this->heston_, d_paths, states,
+				widthSize, heightSize, depthSize, nSteps, dt);
 		}
 		break;
 		}
@@ -399,7 +813,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet implementd.");
+			heston_kernels::milstein_scheme::generatePathsKernelFloat1D << <threadsPerBlock, blocksPerGrid >> > (this->heston_, d_paths, states,
+				nPaths, nSteps, dt);
 		}
 		break;
 		}
@@ -427,7 +842,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet implementd.");
+			heston_kernels::milstein_scheme::generatePathsKernelFloat2D << <gridSize, blockSize >> > (this->heston_, d_paths, states,
+				widthSize, heightSize, nSteps, dt);
 		}
 		break;
 		}
@@ -457,7 +873,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet implementd.");
+			heston_kernels::milstein_scheme::generatePathsKernelFloat3D << <gridSize, blockSize >> > (this->heston_, d_paths, states,
+				widthSize, heightSize, depthSize, nSteps, dt);
 		}
 		break;
 		}

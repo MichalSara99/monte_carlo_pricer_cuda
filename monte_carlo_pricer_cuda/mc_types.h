@@ -18,6 +18,8 @@
 #define THREADS_3D_PER_BLOCK_X 8
 #define THREADS_3D_PER_BLOCK_Y 8
 #define THREADS_3D_PER_BLOCK_Z 8
+// step for numerical differentiation:
+#define DIFF_STEP 10e-6
 
 
 namespace mc_types {

@@ -161,7 +161,184 @@ namespace gbm_kernels {
 
 	namespace milstein_scheme {
 
+		__global__
+			void generatePathsKernelDouble1D(sde_builder_cuda::GeometricBrownianMotion<double> gbm,
+				double *d_paths, curandState_t* states,
+				unsigned int nPaths, unsigned int nSteps, double dt) {
+			// Path index
+			const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
+			if (idx < nPaths) {
+				double last = gbm.init();
+				double z{};
+				d_paths[idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z = curand_normal(&states[idx]);
+					last = last + gbm.drift(i*dt, last)*dt +
+						gbm.diffusion(i*dt, last)*sqrtf(dt)*z +
+						0.5*gbm.diffusion(i*dt, last) *
+						((gbm.diffusion(i*dt, last + 0.5*DIFF_STEP) -
+							gbm.diffusion(i*dt, last - 0.5*DIFF_STEP)) / DIFF_STEP)*
+							((sqrtf(dt)*z)*(sqrtf(dt)*z) - dt);
+					d_paths[k] = last;
+					i++;
+				}
+			}
+		}
+
+		__global__
+			void generatePathsKernelFloat1D(sde_builder_cuda::GeometricBrownianMotion<float> gbm,
+				float *d_paths, curandState_t* states,
+				unsigned int nPaths, unsigned int nSteps, float dt) {
+			// Path index
+			const unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+			if (idx < nPaths) {
+				float last = gbm.init();
+				float z{};
+				d_paths[idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z = curand_normal(&states[idx]);
+					last = last + gbm.drift(i*dt, last)*dt +
+						gbm.diffusion(i*dt, last)*sqrtf(dt)*z +
+						0.5*gbm.diffusion(i*dt, last) *
+						((gbm.diffusion(i*dt, last + 0.5*DIFF_STEP) -
+							gbm.diffusion(i*dt, last - 0.5*DIFF_STEP)) / DIFF_STEP)*
+							((sqrtf(dt)*z)*(sqrtf(dt)*z) - dt);
+					d_paths[k] = last;
+					i++;
+				}
+			}
+		}
+
+		__global__
+			void generatePathsKernelDouble2D(sde_builder_cuda::GeometricBrownianMotion<double> gbm,
+				double *d_paths, curandState_t* states,
+				unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nSteps, double dt) {
+			// Path index
+			const unsigned int c_idx = blockIdx.x * blockDim.x + threadIdx.x;
+			const unsigned int r_idx = blockIdx.y * blockDim.y + threadIdx.y;
+			const unsigned int t_idx = c_idx + nPathsWidth * r_idx;
+			const unsigned int nPaths = nPathsWidth * nPathsHeight;
+
+			if (t_idx < nPaths) {
+				double last = gbm.init();
+				double z{};
+				d_paths[t_idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = t_idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z = curand_normal(&states[t_idx]);
+					last = last + gbm.drift(i*dt, last)*dt +
+						gbm.diffusion(i*dt, last)*sqrtf(dt)*z +
+						0.5*gbm.diffusion(i*dt, last) *
+						((gbm.diffusion(i*dt, last + 0.5*DIFF_STEP) -
+							gbm.diffusion(i*dt, last - 0.5*DIFF_STEP)) / DIFF_STEP)*
+							((sqrtf(dt)*z)*(sqrtf(dt)*z) - dt);
+					d_paths[k] = last;
+					i++;
+				}
+			}
+		}
+
+		__global__
+			void generatePathsKernelFloat2D(sde_builder_cuda::GeometricBrownianMotion<float> gbm,
+				float *d_paths, curandState_t* states,
+				unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nSteps, float dt) {
+			// Path index
+			const unsigned int c_idx = blockIdx.x * blockDim.x + threadIdx.x;
+			const unsigned int r_idx = blockIdx.y * blockDim.y + threadIdx.y;
+			const unsigned int t_idx = c_idx + nPathsWidth * r_idx;
+			const unsigned int nPaths = nPathsWidth * nPathsHeight;
+
+			if (t_idx < nPaths) {
+				float last = gbm.init();
+				float z{};
+				d_paths[t_idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = t_idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z = curand_normal(&states[t_idx]);
+					last = last + gbm.drift(i*dt, last)*dt +
+						gbm.diffusion(i*dt, last)*sqrtf(dt)*z +
+						0.5*gbm.diffusion(i*dt, last) *
+						((gbm.diffusion(i*dt, last + 0.5*DIFF_STEP) -
+							gbm.diffusion(i*dt, last - 0.5*DIFF_STEP)) / DIFF_STEP)*
+							((sqrtf(dt)*z)*(sqrtf(dt)*z) - dt);
+					d_paths[k] = last;
+					i++;
+				}
+			}
+		}
+
+
+		__global__
+			void generatePathsKernelDouble3D(sde_builder_cuda::GeometricBrownianMotion<double> gbm,
+				double *d_paths, curandState_t* states,
+				unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathsDepth,
+				unsigned int nSteps, double dt) {
+			// Path index
+			const unsigned int c_idx = blockIdx.x * blockDim.x + threadIdx.x;
+			const unsigned int r_idx = blockIdx.y * blockDim.y + threadIdx.y;
+			const unsigned int l_idx = blockIdx.z * blockDim.z + threadIdx.z;
+			const unsigned int t_idx = c_idx + nPathsWidth * r_idx + nPathsWidth * nPathsHeight* l_idx;
+			const unsigned int nPaths = nPathsWidth * nPathsHeight * nPathsDepth;
+
+			if (t_idx < nPaths) {
+				double last = gbm.init();
+				double z{};
+				d_paths[t_idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = t_idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z = curand_normal(&states[t_idx]);
+					last = last + gbm.drift(i*dt, last)*dt +
+						gbm.diffusion(i*dt, last)*sqrtf(dt)*z +
+						0.5*gbm.diffusion(i*dt, last) *
+						((gbm.diffusion(i*dt, last + 0.5*DIFF_STEP) -
+							gbm.diffusion(i*dt, last - 0.5*DIFF_STEP)) / DIFF_STEP)*
+							((sqrtf(dt)*z)*(sqrtf(dt)*z) - dt);
+					d_paths[k] = last;
+					i++;
+				}
+			}
+		}
+
+		__global__
+			void generatePathsKernelFloat3D(sde_builder_cuda::GeometricBrownianMotion<float> gbm,
+				float *d_paths, curandState_t* states,
+				unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathsDepth,
+				unsigned int nSteps, float dt) {
+			// Path index
+			const unsigned int c_idx = blockIdx.x * blockDim.x + threadIdx.x;
+			const unsigned int r_idx = blockIdx.y * blockDim.y + threadIdx.y;
+			const unsigned int l_idx = blockIdx.z * blockDim.z + threadIdx.z;
+			const unsigned int t_idx = c_idx + nPathsWidth * r_idx + nPathsWidth * nPathsHeight* l_idx;
+			const unsigned int nPaths = nPathsWidth * nPathsHeight * nPathsDepth;
+
+			if (t_idx < nPaths) {
+				float last = gbm.init();
+				float z{};
+				d_paths[t_idx] = last;
+
+				unsigned int i = 0;
+				for (unsigned int k = t_idx + nPaths; k < nSteps*nPaths; k += nPaths) {
+					z = curand_normal(&states[t_idx]);
+					last = last + gbm.drift(i*dt, last)*dt +
+						gbm.diffusion(i*dt, last)*sqrtf(dt)*z +
+						0.5*gbm.diffusion(i*dt, last) *
+						((gbm.diffusion(i*dt, last + 0.5*DIFF_STEP) -
+							gbm.diffusion(i*dt, last - 0.5*DIFF_STEP)) / DIFF_STEP)*
+							((sqrtf(dt)*z)*(sqrtf(dt)*z) - dt);
+					d_paths[k] = last;
+					i++;
+				}
+			}
+		}
 
 
 
@@ -194,7 +371,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet impolemented!");
+			gbm_kernels::milstein_scheme::generatePathsKernelDouble1D << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
+				nPaths, nSteps, dt);
 		}
 		break;
 		}
@@ -221,7 +399,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet impolemented!");
+			gbm_kernels::milstein_scheme::generatePathsKernelDouble2D << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+				widthSize, heightSize, nSteps, dt);
 		}
 		break;
 		}
@@ -253,7 +432,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet impolemented!");
+			gbm_kernels::milstein_scheme::generatePathsKernelDouble3D << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+				widthSize, heightSize, depthSize, nSteps, dt);
 		}
 		break;
 		}
@@ -332,7 +512,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet implementd.");
+			gbm_kernels::milstein_scheme::generatePathsKernelFloat1D << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
+				nPaths, nSteps, dt);
 		}
 		break;
 		}
@@ -360,7 +541,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet implementd.");
+			gbm_kernels::milstein_scheme::generatePathsKernelFloat2D << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+				widthSize, heightSize, nSteps, dt);
 		}
 		break;
 		}
@@ -390,7 +572,8 @@ namespace fdm_engine_cuda {
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			throw std::exception("Not yet implementd.");
+			gbm_kernels::milstein_scheme::generatePathsKernelFloat3D << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+				widthSize, heightSize, depthSize, nSteps, dt);
 		}
 		break;
 		}
