@@ -4,6 +4,7 @@
 
 #include"mc_types.h"
 #include"mc_utilities.h"
+#include"sde.h"
 #include<random>
 #include<cassert>
 
@@ -13,6 +14,7 @@ namespace finite_difference_method {
 	using mc_types::TimePointsType;
 	using mc_utilities::PartialCentralDifference;
 	using mc_utilities::withRespectTo;
+	using sde::Sde;
 
 
 	template<typename T, typename ...Ts>

@@ -19,7 +19,7 @@ void gbm_cuda() {
 
 	double maturity{ 1.0 };
 	std::size_t numberSteps{ 2 * 360 };
-	std::size_t numberIterations{ 100'000 };
+	std::size_t numberIterations{ 350'000 };
 	double strike{ 100.0 };
 
 	sde_builder_cuda::GeometricBrownianMotion<double> gbm{ rate,sigma,s };
@@ -115,7 +115,7 @@ void heston_cuda() {
 	double maturityInYears{ 1.0 };
 
 	std::size_t numberSteps{ 720 };
-	std::size_t numberIterations{ 150'000 };
+	std::size_t numberIterations{ 250'000 };
 	double strike{ 100.0 };
 
 	sde_builder_cuda::HestonModel<double> heston{ mu,sigma,kappa,theta,s_init,var_init,correlation };

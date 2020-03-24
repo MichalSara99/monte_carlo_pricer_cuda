@@ -9,7 +9,6 @@
 
 
 using namespace finite_difference_method;
-using namespace sde_builder;
 
 void fdm_gbm() {
 
@@ -17,13 +16,13 @@ void fdm_gbm() {
 	double sigma{ 0.005 };
 	double s{ 100.0 };
 
-	GeometricBrownianMotion<> gbm{ rate,sigma,s };
-	std::cout << "Number of factors: " << GeometricBrownianMotion<>::FactorCount << "\n";
+	sde_builder::GeometricBrownianMotion<> gbm{ rate,sigma,s };
+	std::cout << "Number of factors: " << sde_builder::GeometricBrownianMotion<>::FactorCount << "\n";
 	auto sde = gbm.model();
 	auto diffusion = gbm.diffusion();
 	auto drift = gbm.drift();
 
-	constexpr std::size_t factors = GeometricBrownianMotion<>::FactorCount;
+	constexpr std::size_t factors = sde_builder::GeometricBrownianMotion<>::FactorCount;
 	Fdm<factors, double> gbm_fdm{ sde,1.0,2 * 360 };
 	auto times = gbm_fdm.timeResolution();
 
@@ -69,11 +68,11 @@ void fdm_heston() {
 	float var_init{ 0.025f };
 
 
-	HestonModel<float> hest{ mu,sigma,kappa,theta,etha,stock_init,var_init };
-	std::cout << "Number of factors: " << HestonModel<>::FactorCount << "\n";
+	sde_builder::HestonModel<float> hest{ mu,sigma,kappa,theta,etha,stock_init,var_init };
+	std::cout << "Number of factors: " << sde_builder::HestonModel<>::FactorCount << "\n";
 
-	constexpr std::size_t factors = HestonModel<>::FactorCount;
-	Fdm<HestonModel<>::FactorCount, float> heston_fdm{ hest.model(),1.0,0.8f,2 * 360 };
+	constexpr std::size_t factors = sde_builder::HestonModel<>::FactorCount;
+	Fdm<sde_builder::HestonModel<>::FactorCount, float> heston_fdm{ hest.model(),1.0,0.8f,2 * 360 };
 	auto times = heston_fdm.timeResolution();
 
 	std::cout << "timing: \n";

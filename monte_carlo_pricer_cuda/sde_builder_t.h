@@ -5,7 +5,6 @@
 #include"sde_builder.h"
 #include<iostream>
 
-using namespace sde_builder;
 
 
 void gbm() {
@@ -13,8 +12,8 @@ void gbm() {
 	double sigma{ 0.01 };
 	double s{ 100.0 };
 
-	GeometricBrownianMotion<> gbm{ r,sigma,s };
-	std::cout << "Number of factors: " << GeometricBrownianMotion<>::FactorCount << "\n";
+	sde_builder::GeometricBrownianMotion<> gbm{ r,sigma,s };
+	std::cout << "Number of factors: " << sde_builder::GeometricBrownianMotion<>::FactorCount << "\n";
 	auto sde = gbm.model();
 	auto diffusion = gbm.diffusion();
 	auto drift = gbm.drift();
@@ -33,8 +32,8 @@ void cev() {
 	float s{ 100.0f };
 	float beta{ 0.25f };
 
-	ConstantElasticityVariance<float> cev{ r,sigma,beta,s };
-	std::cout << "Number of factors: " << ConstantElasticityVariance<>::FactorCount << "\n";
+	sde_builder::ConstantElasticityVariance<float> cev{ r,sigma,beta,s };
+	std::cout << "Number of factors: " << sde_builder::ConstantElasticityVariance<>::FactorCount << "\n";
 	auto sde = cev.model();
 	auto diffusion = cev.diffusion();
 	auto drift = cev.drift();
@@ -59,8 +58,8 @@ void heston() {
 	float var_init{ 0.025f };
 
 
-	HestonModel<float> hest{ mu,sigma,kappa,theta,etha,stock_init,var_init };
-	std::cout << "Number of factors: " << HestonModel<>::FactorCount << "\n";
+	sde_builder::HestonModel<float> hest{ mu,sigma,kappa,theta,etha,stock_init,var_init };
+	std::cout << "Number of factors: " << sde_builder::HestonModel<>::FactorCount << "\n";
 	auto stock_sde = std::get<0>(hest.model());
 	auto var_sde = std::get<1>(hest.model());
 	auto diffusion1 = hest.diffusion1();
@@ -73,7 +72,7 @@ void heston() {
 	//std::cout << "drift1(101.1,0.1): " << drift2(101.1, 0.1) << "\n";
 	//std::cout << "diffusion1(101.1,0.1): " << diffusion2(101.0, 0.1) << "\n";
 	std::cout << "====================================\n";
-	std::cout << "Number of factors: " << HestonModel<>::FactorCount << "\n";
+	std::cout << "Number of factors: " << sde_builder::HestonModel<>::FactorCount << "\n";
 	std::cout << "drift1(101.1,0.012,0.1): " << stock_sde->drift(0.1, 101.1, 0.012) << "\n";
 	std::cout << "diffusion1(101.1,0.012,0.1): " << stock_sde->diffusion(0.1, 101.1, 0.012) << "\n";
 	std::cout << "drift2(101.1,0.012,0.1): " << var_sde->drift(0.1, 101.1, 0.012) << "\n";
