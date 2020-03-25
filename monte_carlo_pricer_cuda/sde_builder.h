@@ -22,7 +22,6 @@ namespace sde_builder {
 	class SdeBuilder<1, T, Ts...> {
 	public:
 		virtual ~SdeBuilder() {}
-		virtual inline  std::string name()const = 0;
 		virtual SdeComponent<T, Ts...> drift()const = 0;
 		virtual SdeComponent<T, Ts...> diffusion()const = 0;
 		virtual std::shared_ptr<Sde<T, Ts...>> model()const = 0;
@@ -35,7 +34,6 @@ namespace sde_builder {
 	class SdeBuilder<2, T, Ts...> {
 	public:
 		virtual ~SdeBuilder() {}
-		virtual  inline std::string name()const = 0;
 		virtual  SdeComponent<T, Ts...> drift1()const = 0;
 		virtual  SdeComponent<T, Ts...> diffusion1()const = 0;
 		virtual  SdeComponent<T, Ts...> drift2() const = 0;
@@ -78,7 +76,7 @@ namespace sde_builder {
 			inline T const &sigma()const { return sigma_; }
 			inline T const &init()const { return init_; }
 
-			inline std::string name() const override { return std::string{ "Geometric Brownian Motion" }; }
+			inline static const std::string name() { return std::string{ "Geometric Brownian Motion" }; }
 
 			SdeComponent<T, T, T> drift()const override {
 				return [this](T time, T underlyingPrice) {
@@ -132,7 +130,7 @@ namespace sde_builder {
 			inline T const &sigma()const { return sigma_; }
 			inline T const &init()const { return init_; }
 
-			inline std::string name() const override { return std::string{ "Arithmetic Brownian Motion" }; }
+			inline static const std::string name() { return std::string{ "Arithmetic Brownian Motion" }; }
 
 			SdeComponent<T, T, T> drift()const override {
 				return [this](T time, T underlyingPrice) {
@@ -190,7 +188,7 @@ namespace sde_builder {
 			inline T const &init()const { return init_; }
 			inline T const &beta()const { return beta_; }
 
-			inline std::string name() const override { return std::string{ "Constant Elasticity Variance" }; }
+			inline static const std::string name()  { return std::string{ "Constant Elasticity Variance" }; }
 
 			SdeComponent<T, T, T> drift()const override {
 				return [this](T time, T underlyingPrice) {
@@ -266,7 +264,7 @@ namespace sde_builder {
 			inline T const &init2()const { return init2_; }
 			inline T const &rho()const { return rho_; }
 
-			inline std::string name() const override { return std::string{ "Heston Model" }; }
+			inline static const std::string name() { return std::string{ "Heston Model" }; }
 
 			SdeComponent<T, T, T, T> drift1()const override {
 				return [this](T time, T underlyingPrice, T varianceProcess) {

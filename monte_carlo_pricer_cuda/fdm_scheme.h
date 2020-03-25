@@ -277,7 +277,7 @@ namespace finite_difference_method {
 			auto spot = this->model_->initCondition();
 			T spotNew{};
 			T z{};
-			for (std::size_t i = 0; i < path.size(); ++i) {
+			for (std::size_t i = 1; i < path.size(); ++i) {
 				z = normal_(mt_);
 				spotNew = spot +
 					this->model_->drift(timePoints[i - 1], spot)*(timePoints[i] - timePoints[i - 1]) +

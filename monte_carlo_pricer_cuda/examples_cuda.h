@@ -1,18 +1,19 @@
 #pragma once
-#if !defined(_EXAMPLES_H_)
-#define _EXAMPLES_H_
+#if !defined(_EXAMPLES_CUDA_H_)
+#define _EXAMPLES_CUDA_H_
 
 #include<iostream>
 #include<string>
+#include<chrono>
 #include"payoff.h"
 #include"payoff_strategy.h"
-#include"fdm.h"
-#include"sde_builder.h"
+#include"fdm_cuda.h"
+#include"sde_builder_cuda.h"
 #include<boost/date_time/gregorian/gregorian.hpp>
 #include<boost/date_time/gregorian/gregorian_io.hpp>
 
-using namespace finite_difference_method;
-using namespace sde_builder;
+using namespace finite_difference_method_cuda;
+using namespace sde_builder_cuda;
 using namespace boost::gregorian;
 //===================================================================
 //=== equidistant time points
@@ -20,7 +21,7 @@ using namespace boost::gregorian;
 
 // Pricing european options 
 // using paths from geometric brownian motion  
-void europeanOptionsGBMEuler() {
+void europeanOptionsGBMEulerCuda() {
 
 	// First generate paths using GBM 
 	double rate{ 0.001 };
@@ -31,18 +32,19 @@ void europeanOptionsGBMEuler() {
 	std::size_t simuls{ 270'000 };
 
 	// Construct the model:
-	sde_builder::GeometricBrownianMotion<> gbm{ rate,sigma,s };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::GeometricBrownianMotion<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::GeometricBrownianMotion<>::FactorCount << "\n";
+	sde_builder_cuda::GeometricBrownianMotion<> gbm{ rate,sigma,s };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << sde_builder_cuda::GeometricBrownianMotion<>::name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::GeometricBrownianMotion<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),maturityInYears,numberSteps };
+	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(simuls, FDMScheme::EulerScheme);
+	auto paths_euler = fdm_gbm(gbm,simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for GBM<1> ("<<simuls<<") took: " << end << " seconds.\n";
 
 	// last values:
+	std::cout << "==============================\n";
 	for (std::size_t t = 0; t < 30; ++t) {
 		std::cout << t << " paths: \n";
 		std::cout << paths_euler[t][719] << ", ";
@@ -53,12 +55,12 @@ void europeanOptionsGBMEuler() {
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	PlainCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::PlainCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	PlainPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::PlainPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
@@ -78,7 +80,7 @@ void europeanOptionsGBMEuler() {
 
 // Pricing european options 
 // using paths from geometric brownian motion  
-void europeanOptionsGBMMilstein() {
+void europeanOptionsGBMMilsteinCuda() {
 
 	// First generate paths using GBM 
 	double rate{ 0.001 };
@@ -89,25 +91,25 @@ void europeanOptionsGBMMilstein() {
 	std::size_t simuls{ 270'000 };
 
 	// Construct the model:
-	sde_builder::GeometricBrownianMotion<> gbm{ rate,sigma,s };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::GeometricBrownianMotion<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::GeometricBrownianMotion<>::FactorCount << "\n";
+	sde_builder_cuda::GeometricBrownianMotion<> gbm{ rate,sigma,s };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << sde_builder_cuda::GeometricBrownianMotion<>::name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::GeometricBrownianMotion<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),maturityInYears,numberSteps };
+	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(simuls, FDMScheme::MilsteinScheme);
+	auto paths_euler = fdm_gbm(gbm,simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
-	std::cout << "Milstein scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
+	std::cout << "Milstein scheme for GBM<1>  (" << simuls << ") took: " << end << " seconds.\n";
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	PlainCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::PlainCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	PlainPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::PlainPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
@@ -127,7 +129,7 @@ void europeanOptionsGBMMilstein() {
 
 // Pricing european options 
 // using paths from geometric brownian motion  
-void europeanOptionsHestonEuler() {
+void europeanOptionsHestonEulerCuda() {
 
 	// First generate paths using Heston Model:
 	double rate_d{ 0.005 };
@@ -145,25 +147,25 @@ void europeanOptionsHestonEuler() {
 	std::size_t simuls{ 250'000 };
 
 	// Construct the model:
-	sde_builder::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::HestonModel<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::HestonModel<>::FactorCount << "\n";
+	sde_builder_cuda::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << sde_builder_cuda::HestonModel<>::name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::HestonModel<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::HestonModel<>::FactorCount, double> fdm_heston{ heston.model(),maturityInYears,correlation,numberSteps };
+	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(simuls, FDMScheme::EulerScheme);
+	auto paths_euler = fdm_heston(heston,simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
-	std::cout << "Euler scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
+	std::cout << "Euler scheme for Heston<2>  (" << simuls << ") took: " << end << " seconds.\n";
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	PlainCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::PlainCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	PlainPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::PlainPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
@@ -184,7 +186,7 @@ void europeanOptionsHestonEuler() {
 
 // Pricing european options 
 // using paths from geometric brownian motion  
-void europeanOptionsHestonMilstein() {
+void europeanOptionsHestonMilsteinCuda() {
 
 	// First generate paths using Heston Model:
 	double rate_d{ 0.005 };
@@ -202,25 +204,25 @@ void europeanOptionsHestonMilstein() {
 	std::size_t simuls{ 250'000 };
 
 	// Construct the model:
-	sde_builder::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::HestonModel<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::HestonModel<>::FactorCount << "\n";
+	sde_builder_cuda::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << heston.name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::HestonModel<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::HestonModel<>::FactorCount, double> fdm_heston{ heston.model(),maturityInYears,correlation,numberSteps };
+	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(simuls, FDMScheme::MilsteinScheme);
+	auto paths_euler = fdm_heston(heston,simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	PlainCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::PlainCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	PlainPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::PlainPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
@@ -241,7 +243,7 @@ void europeanOptionsHestonMilstein() {
 
 // Pricing asian options 
 // using paths from geometric brownian motion  
-void asianOptionsGBMEuler() {
+void asianOptionsGBMEulerCuda() {
 
 	// First generate paths using GBM 
 	double rate{ 0.001 };
@@ -252,25 +254,25 @@ void asianOptionsGBMEuler() {
 	std::size_t simuls{ 250'000 };
 
 	// Construct the model:
-	sde_builder::GeometricBrownianMotion<> gbm{ rate,sigma,s };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::GeometricBrownianMotion<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::GeometricBrownianMotion<>::FactorCount << "\n";
+	sde_builder_cuda::GeometricBrownianMotion<> gbm{ rate,sigma,s };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << gbm.name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::GeometricBrownianMotion<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),maturityInYears,numberSteps };
+	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(simuls, FDMScheme::EulerScheme);
+	auto paths_euler = fdm_gbm(gbm,simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
-	std::cout << "Euler scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
+	std::cout << "Euler scheme for GBM<1> (" << simuls << ")  took: " << end << " seconds.\n";
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	AsianAvgCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&AsianAvgCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::AsianAvgCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::AsianAvgCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	AsianAvgPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&AsianAvgPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::AsianAvgPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::AsianAvgPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
@@ -289,7 +291,7 @@ void asianOptionsGBMEuler() {
 
 // Pricing european options 
 // using paths from geometric brownian motion  
-void asianOptionsGBMMilstein() {
+void asianOptionsGBMMilsteinCuda() {
 
 	// First generate paths using GBM 
 	double rate{ 0.001 };
@@ -300,25 +302,25 @@ void asianOptionsGBMMilstein() {
 	std::size_t simuls{ 250'000 };
 
 	// Construct the model:
-	sde_builder::GeometricBrownianMotion<> gbm{ rate,sigma,s };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::GeometricBrownianMotion<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::GeometricBrownianMotion<>::FactorCount << "\n";
+	sde_builder_cuda::GeometricBrownianMotion<> gbm{ rate,sigma,s };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << gbm.name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::GeometricBrownianMotion<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),maturityInYears,numberSteps };
+	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(simuls, FDMScheme::MilsteinScheme);
+	auto paths_euler = fdm_gbm(gbm,simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	AsianAvgCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&AsianAvgCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::AsianAvgCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::AsianAvgCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	AsianAvgPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&AsianAvgPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::AsianAvgPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::AsianAvgPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
@@ -336,7 +338,7 @@ void asianOptionsGBMMilstein() {
 
 // Pricing asian options 
 // using paths from geometric brownian motion  
-void asianOptionsHestonEuler() {
+void asianOptionsHestonEulerCuda() {
 
 	// First generate paths using Heston Model:
 	double rate_d{ 0.005 };
@@ -354,25 +356,25 @@ void asianOptionsHestonEuler() {
 	std::size_t simuls{ 250'000 };
 
 	// Construct the model:
-	sde_builder::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::HestonModel<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::HestonModel<>::FactorCount << "\n";
+	sde_builder_cuda::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << heston.name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::HestonModel<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::HestonModel<>::FactorCount, double> fdm_heston{ heston.model(),maturityInYears,correlation,numberSteps };
+	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(simuls, FDMScheme::EulerScheme);
+	auto paths_euler = fdm_heston(heston,simuls, FDMScheme::EulerScheme,GPUConfiguration::Grid2D);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	AsianAvgCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&AsianAvgCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::AsianAvgCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::AsianAvgCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	AsianAvgPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&AsianAvgPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::AsianAvgPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::AsianAvgPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
@@ -390,7 +392,7 @@ void asianOptionsHestonEuler() {
 
 // Pricing asian options 
 // using paths from geometric brownian motion  
-void asianOptionsHestonMilstein() {
+void asianOptionsHestonMilsteinCuda() {
 
 	// First generate paths using Heston Model:
 	double rate_d{ 0.005 };
@@ -408,25 +410,25 @@ void asianOptionsHestonMilstein() {
 	std::size_t simuls{ 250'000 };
 
 	// Construct the model:
-	sde_builder::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::HestonModel<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::HestonModel<>::FactorCount << "\n";
+	sde_builder_cuda::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << heston.name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::HestonModel<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::HestonModel<>::FactorCount, double> fdm_heston{ heston.model(),maturityInYears,correlation,numberSteps };
+	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(simuls, FDMScheme::MilsteinScheme);
+	auto paths_euler = fdm_heston(heston,simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	AsianAvgCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&AsianAvgCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::AsianAvgCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::AsianAvgCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	AsianAvgPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&AsianAvgPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::AsianAvgPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::AsianAvgPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
@@ -442,22 +444,20 @@ void asianOptionsHestonMilstein() {
 	std::cout << "=========================================================\n";
 }
 
-
 //===================================================================
 //=== non-equidistant time points
 //===================================================================
 
-
 // Pricing european options 
 // using paths from geometric brownian motion  
-void europeanOptionsGBMEulerTP() {
+void europeanOptionsGBMEulerTPCuda() {
 
 	// First generate paths using GBM 
 	double rate{ 0.001 };
 	double sigma{ 0.005 };
 	double s{ 100.0 };
 	double daysInYear{ 365.0 };
-	std::size_t numberSteps{ 730 }; 
+	std::size_t numberSteps{ 730 };
 	std::size_t simuls{ 270'000 };
 
 	// Generate fixing dates:
@@ -472,18 +472,18 @@ void europeanOptionsGBMEulerTP() {
 
 	// Generate time points:
 	for (auto const &d : fixingDates) {
-		timePoints.push_back(((d - today).days())/ daysInYear);
+		timePoints.push_back(((d - today).days()) / daysInYear);
 	}
 
 	// Construct the model:
-	sde_builder::GeometricBrownianMotion<> gbm{ rate,sigma,s };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::GeometricBrownianMotion<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::GeometricBrownianMotion<>::FactorCount << "\n";
+	sde_builder_cuda::GeometricBrownianMotion<> gbm{ rate,sigma,s };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << sde_builder_cuda::GeometricBrownianMotion<>::name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::GeometricBrownianMotion<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),timePoints };
+	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{timePoints };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(simuls, FDMScheme::EulerScheme);
+	auto paths_euler = fdm_gbm(gbm,simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
 
@@ -498,12 +498,12 @@ void europeanOptionsGBMEulerTP() {
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	PlainCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::PlainCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	PlainPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::PlainPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
@@ -523,7 +523,7 @@ void europeanOptionsGBMEulerTP() {
 
 // Pricing european options 
 // using paths from geometric brownian motion  
-void europeanOptionsGBMMilsteinTP() {
+void europeanOptionsGBMMilsteinTPCuda() {
 
 	// First generate paths using GBM 
 	double rate{ 0.001 };
@@ -549,37 +549,36 @@ void europeanOptionsGBMMilsteinTP() {
 	}
 
 	// Construct the model:
-	sde_builder::GeometricBrownianMotion<> gbm{ rate,sigma,s };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::GeometricBrownianMotion<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::GeometricBrownianMotion<>::FactorCount << "\n";
+	sde_builder_cuda::GeometricBrownianMotion<> gbm{ rate,sigma,s };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << sde_builder_cuda::GeometricBrownianMotion<>::name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::GeometricBrownianMotion<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),timePoints };
+	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ timePoints };
 	auto start = std::chrono::system_clock::now();
-	auto paths_milstein = fdm_gbm(simuls, FDMScheme::MilsteinScheme);
+	auto paths_euler = fdm_gbm(gbm, simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
-	std::cout << "Milstein scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
-
+	std::cout << "Milstein scheme for GBM<1>  (" << simuls << ") took: " << end << " seconds.\n";
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	PlainCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::PlainCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	PlainPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::PlainPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
-	for (auto const &path : paths_milstein) {
+	for (auto const &path : paths_euler) {
 		lastPrice = path.back();
 		call_sum += call_payoff(lastPrice);
 		put_sum += put_payoff(lastPrice);
 	}
-	auto call_avg = (call_sum / static_cast<double>(paths_milstein.size()));
-	auto put_avg = (put_sum / static_cast<double>(paths_milstein.size()));
+	auto call_avg = (call_sum / static_cast<double>(paths_euler.size()));
+	auto put_avg = (put_sum / static_cast<double>(paths_euler.size()));
 
 	std::cout << "Call price: " << ((std::exp(-1.0*rate*timePoints.back()))*call_avg) << "\n";
 	std::cout << "Put price: " << ((std::exp(-1.0*rate*timePoints.back()))*put_avg) << "\n";
@@ -588,7 +587,7 @@ void europeanOptionsGBMMilsteinTP() {
 
 // Pricing european options 
 // using paths from geometric brownian motion  
-void europeanOptionsHestonEulerTP() {
+void europeanOptionsHestonEulerTPCuda() {
 
 	// First generate paths using Heston Model:
 	double rate_d{ 0.005 };
@@ -621,25 +620,25 @@ void europeanOptionsHestonEulerTP() {
 	}
 
 	// Construct the model:
-	sde_builder::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
-	std::cout << "MULTITHREADING:\n";
-	std::cout << "Model: " << sde_builder::HestonModel<>::name() << "\n";
-	std::cout << "Factors: " << sde_builder::HestonModel<>::FactorCount << "\n";
+	sde_builder_cuda::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
+	std::cout << "CUDA:\n";
+	std::cout << "Model: " << sde_builder_cuda::HestonModel<>::name() << "\n";
+	std::cout << "Factors: " << sde_builder_cuda::HestonModel<>::FactorCount << "\n";
 	// Construct the engine: 
-	Fdm<sde_builder::HestonModel<>::FactorCount, double> fdm_heston{ heston.model(),timePoints };
+	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{ timePoints };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(simuls, FDMScheme::EulerScheme);
+	auto paths_euler = fdm_heston(heston, simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
-	std::cout << "Euler scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
+	std::cout << "Euler scheme for Heston<2>  (" << simuls << ") took: " << end << " seconds.\n";
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
-	PlainCallStrategy<> call_strategy{ call_strike };
-	auto call_payoff = std::bind(&PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
+	payoff::PlainCallStrategy<> call_strategy{ call_strike };
+	auto call_payoff = std::bind(&payoff::PlainCallStrategy<>::payoff, &call_strategy, std::placeholders::_1);
 	// Construct put payoff of the option:
 	double put_strike{ 100.0 };
-	PlainPutStrategy<> put_strategy{ put_strike };
-	auto put_payoff = std::bind(&PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
+	payoff::PlainPutStrategy<> put_strategy{ put_strike };
+	auto put_payoff = std::bind(&payoff::PlainPutStrategy<>::payoff, &put_strategy, std::placeholders::_1);
 
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
@@ -657,4 +656,5 @@ void europeanOptionsHestonEulerTP() {
 	std::cout << "=========================================================\n";
 }
 
-#endif ///_EXAMPLES_H_
+
+#endif ///_EXAMPLES_CUDA_H_

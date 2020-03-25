@@ -31,6 +31,7 @@ namespace sde_builder_cuda {
 	using fdm_engine_cuda::HestonPathEngineDouble;
 	using fdm_engine_cuda::HestonPathEngineFloat;
 
+
 	// Geometric Brownian Motion
 	template<typename T = double>
 	class GeometricBrownianMotion {
@@ -62,6 +63,10 @@ namespace sde_builder_cuda {
 		}
 
 		enum { FactorCount = 1 };
+
+		inline static std::string const name() {
+			return std::string{ "Geometric Brownian Motion" };
+		}
 
 		auto engineConstructor() {
 			return _engineConstructor(std::is_same<T, double>());
@@ -116,6 +121,10 @@ namespace sde_builder_cuda {
 		}
 
 		enum { FactorCount = 1 };
+
+		inline static std::string const name() {
+			return std::string{ "Arithemtic Brownian Motion" };
+		}
 
 		auto engineConstructor() {
 			return _engineConstructor(std::is_same<T, double>());
@@ -176,6 +185,10 @@ namespace sde_builder_cuda {
 
 		enum { FactorCount = 1 };
 
+		inline static std::string const name() {
+			return std::string{ "Constant Elasticity Variance" };
+		}
+
 		auto engineConstructor() {
 			return _engineConstructor(std::is_same<T, double>());
 		}
@@ -200,7 +213,7 @@ namespace sde_builder_cuda {
 	};
 
 
-	template<typename T>
+	template<typename T=double>
 	class HestonModel {
 	private:
 		// for first underlying factor:
@@ -220,10 +233,11 @@ namespace sde_builder_cuda {
 
 	public:
 		typedef T value_type;
-		explicit HestonModel(T mu, T sigma, T kappa, T theta,
+		explicit HestonModel(T mu, T sigma, T kappa, T theta,T etha,
 			T init1, T init2, T rho = 0.0)
 			:mu_{ mu }, sigma_{ sigma }, kappa_{ kappa },
-			theta_{ theta }, init2_{ init2 }, init1_{ init1 }, rho_{ rho } {}
+			theta_{ theta }, etha_{etha}, 
+			init2_{init2}, init1_{ init1 }, rho_{ rho } {}
 
 		HestonModel(HestonModel<T> const &other)
 			:mu_{ other.mu_ }, init1_{ other.init1_ }, sigma_{ other.sigma_ },
@@ -246,6 +260,11 @@ namespace sde_builder_cuda {
 		}
 
 		enum { FactorCount = 2 };
+
+
+		inline static std::string const name() {
+			return std::string{ "Heston Model" };
+		}
 
 		auto engineConstructor() {
 			return _engineConstructor(std::is_same<T, double>());
@@ -297,6 +316,7 @@ namespace fdm_engine_cuda {
 	using mc_types::PathValuesType;
 	using mc_types::GPUConfiguration;
 	using mc_types::FDMScheme;
+	using mc_types::TimePointsType;
 
 	// ========================================================================================== //
 	// ====== FactorCount: 1
@@ -312,6 +332,13 @@ namespace fdm_engine_cuda {
 			unsigned int nPaths, unsigned int nSteps, double dt)const;
 		void _generate3D(double *d_paths, curandState_t *states, FDMScheme scheme,
 			unsigned int nPaths, unsigned int nSteps, double dt)const;
+		// Time-point overloads
+		void _generate1D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
+		void _generate2D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
+		void _generate3D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
 
 	public:
 		typedef double value_type;
@@ -320,6 +347,10 @@ namespace fdm_engine_cuda {
 
 		PathValuesType<PathValuesType<double>> simulate(unsigned int nPaths,
 			unsigned int nSteps, double dt, FDMScheme scheme,
+			GPUConfiguration config = GPUConfiguration::Grid1D)const;
+
+		PathValuesType<PathValuesType<double>> simulate(unsigned int nPaths,
+			TimePointsType<double> const &timePoints, FDMScheme scheme,
 			GPUConfiguration config = GPUConfiguration::Grid1D)const;
 	};
 
@@ -333,14 +364,25 @@ namespace fdm_engine_cuda {
 			unsigned int nPaths, unsigned int nSteps, float dt)const;
 		void _generate3D(float *d_paths, curandState_t *states, FDMScheme scheme,
 			unsigned int nPaths, unsigned int nSteps, float dt)const;
+		// Time-point overloads
+		void _generate1D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
+		void _generate2D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
+		void _generate3D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
 
 	public:
-		typedef double value_type;
+		typedef float value_type;
 		explicit GBMPathEngineFloat(sde_builder_cuda::GeometricBrownianMotion<float> gbm)
 			:gbm_{ gbm } {}
 
 		PathValuesType<PathValuesType<float>> simulate(unsigned int nPaths,
 			unsigned int nSteps, float dt, FDMScheme scheme,
+			GPUConfiguration config = GPUConfiguration::Grid1D)const;
+
+		PathValuesType<PathValuesType<float>> simulate(unsigned int nPaths,
+			TimePointsType<float> const &timePoints, FDMScheme scheme,
 			GPUConfiguration config = GPUConfiguration::Grid1D)const;
 
 	};
@@ -358,13 +400,25 @@ namespace fdm_engine_cuda {
 			unsigned int nPaths, unsigned int nSteps, double dt)const;
 		void _generate3D(double *d_paths, curandState_t *states, FDMScheme scheme,
 			unsigned int nPaths, unsigned int nSteps, double dt)const;
+		// Time-point overloads
+		void _generate1D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
+		void _generate2D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
+		void _generate3D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
 
 	public:
+		typedef double value_type;
 		explicit ABMPathEngineDouble(sde_builder_cuda::ArithmeticBrownianMotion<double> abm)
 			:abm_{ abm } {}
 
 		PathValuesType<PathValuesType<double>> simulate(unsigned int nPaths,
 			unsigned int nSteps, double dt, FDMScheme scheme,
+			GPUConfiguration config = GPUConfiguration::Grid1D)const;
+
+		PathValuesType<PathValuesType<double>> simulate(unsigned int nPaths,
+			TimePointsType<double> const &timePoints, FDMScheme scheme,
 			GPUConfiguration config = GPUConfiguration::Grid1D)const;
 	};
 
@@ -377,13 +431,25 @@ namespace fdm_engine_cuda {
 			unsigned int nPaths, unsigned int nSteps, float dt)const;
 		void _generate3D(float *d_paths, curandState_t *states, FDMScheme scheme,
 			unsigned int nPaths, unsigned int nSteps, float dt)const;
+		// Time-point overloads
+		void _generate1D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
+		void _generate2D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
+		void _generate3D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
 
 	public:
+		typedef float value_type;
 		explicit ABMPathEngineFloat(sde_builder_cuda::ArithmeticBrownianMotion<float> abm)
 			:abm_{ abm } {}
 
 		PathValuesType<PathValuesType<float>> simulate(unsigned int nPaths,
 			unsigned int nSteps, float dt, FDMScheme scheme,
+			GPUConfiguration config = GPUConfiguration::Grid1D)const;
+
+		PathValuesType<PathValuesType<float>> simulate(unsigned int nPaths,
+			TimePointsType<float> const &timePoints, FDMScheme scheme,
 			GPUConfiguration config = GPUConfiguration::Grid1D)const;
 
 	};
@@ -402,13 +468,25 @@ namespace fdm_engine_cuda {
 			unsigned int nPaths, unsigned int nSteps, double dt)const;
 		void _generate3D(double *d_paths, curandState_t *states, FDMScheme scheme,
 			unsigned int nPaths, unsigned int nSteps, double dt)const;
+		// Time-point overloads
+		void _generate1D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
+		void _generate2D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
+		void _generate3D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
 
 	public:
+		typedef double value_type;
 		explicit CEVPathEngineDouble(sde_builder_cuda::ConstantElasticityVariance<double> cev)
 			:cev_{ cev } {}
 
 		PathValuesType<PathValuesType<double>> simulate(unsigned int nPaths,
 			unsigned int nSteps, double dt, FDMScheme scheme,
+			GPUConfiguration config = GPUConfiguration::Grid1D)const;
+
+		PathValuesType<PathValuesType<double>> simulate(unsigned int nPaths,
+			TimePointsType<double> const &timePoints, FDMScheme scheme,
 			GPUConfiguration config = GPUConfiguration::Grid1D)const;
 	};
 
@@ -421,13 +499,25 @@ namespace fdm_engine_cuda {
 			unsigned int nPaths, unsigned int nSteps, float dt)const;
 		void _generate3D(float *d_paths, curandState_t *states, FDMScheme scheme,
 			unsigned int nPaths, unsigned int nSteps, float dt)const;
+		// Time-point overloads
+		void _generate1D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
+		void _generate2D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
+		void _generate3D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
 
 	public:
+		typedef float value_type;
 		explicit CEVPathEngineFloat(sde_builder_cuda::ConstantElasticityVariance<float> cev)
 			:cev_{ cev } {}
 
 		PathValuesType<PathValuesType<float>> simulate(unsigned int nPaths,
 			unsigned int nSteps, float dt, FDMScheme scheme,
+			GPUConfiguration config = GPUConfiguration::Grid1D)const;
+
+		PathValuesType<PathValuesType<float>> simulate(unsigned int nPaths,
+			TimePointsType<float> const &timePoints, FDMScheme scheme,
 			GPUConfiguration config = GPUConfiguration::Grid1D)const;
 
 	};
@@ -446,13 +536,25 @@ namespace fdm_engine_cuda {
 			unsigned int nPaths, unsigned int nSteps, double dt)const;
 		void _generate3D(double *d_paths, curandState_t *states, FDMScheme scheme,
 			unsigned int nPaths, unsigned int nSteps, double dt)const;
+		// Time-point overloads
+		void _generate1D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
+		void _generate2D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
+		void _generate3D(double *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, double const *d_times, unsigned int size)const;
 
 	public:
+		typedef double value_type;
 		explicit HestonPathEngineDouble(sde_builder_cuda::HestonModel<double> heston)
 			:heston_{ heston } {}
 
 		PathValuesType<PathValuesType<double>> simulate(unsigned int nPaths,
 			unsigned int nSteps, double dt, FDMScheme scheme,
+			GPUConfiguration config = GPUConfiguration::Grid1D)const;
+
+		PathValuesType<PathValuesType<double>> simulate(unsigned int nPaths,
+			TimePointsType<double> const &timePoints, FDMScheme scheme,
 			GPUConfiguration config = GPUConfiguration::Grid1D)const;
 	};
 
@@ -465,13 +567,25 @@ namespace fdm_engine_cuda {
 			unsigned int nPaths, unsigned int nSteps, float dt)const;
 		void _generate3D(float *d_paths, curandState_t *states, FDMScheme scheme,
 			unsigned int nPaths, unsigned int nSteps, float dt)const;
+		// Time-point overloads
+		void _generate1D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
+		void _generate2D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
+		void _generate3D(float *d_paths, curandState_t *states, FDMScheme scheme,
+			unsigned int nPaths, float const *d_times, unsigned int size)const;
 
 	public:
+		typedef float value_type;
 		explicit HestonPathEngineFloat(sde_builder_cuda::HestonModel<float> heston)
 			:heston_{ heston } {}
 
 		PathValuesType<PathValuesType<float>> simulate(unsigned int nPaths,
 			unsigned int nSteps, float dt, FDMScheme scheme,
+			GPUConfiguration config = GPUConfiguration::Grid1D)const;
+
+		PathValuesType<PathValuesType<float>> simulate(unsigned int nPaths,
+			TimePointsType<float> const &timePoints, FDMScheme scheme,
 			GPUConfiguration config = GPUConfiguration::Grid1D)const;
 
 	};

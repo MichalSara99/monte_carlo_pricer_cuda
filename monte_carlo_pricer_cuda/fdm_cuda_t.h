@@ -9,7 +9,7 @@
 #include"fdm_cuda.h"
 
 using namespace sde_builder_cuda;
-using namespace fdm_cuda;
+using namespace finite_difference_method_cuda;
 
 void gbm_cuda() {
 
@@ -118,7 +118,7 @@ void heston_cuda() {
 	std::size_t numberIterations{ 250'000 };
 	double strike{ 100.0 };
 
-	sde_builder_cuda::HestonModel<double> heston{ mu,sigma,kappa,theta,s_init,var_init,correlation };
+	sde_builder_cuda::HestonModel<double> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
 	FdmCUDA<2, double> fdm{ maturityInYears,numberSteps };
 
 	{
