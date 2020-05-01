@@ -6,8 +6,7 @@
 #include<cassert>
 #include"random_kernel_initializers.cuh"
 #include"mc_types.h"
-#include"gbm_kernels.h"
-
+#include"one_factor_kernels.h"
 
 
 namespace fdm_engine_cuda {
@@ -29,14 +28,16 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel1D<double> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
-				nPaths, nSteps, dt);
+			kernels::one_factor_kernels::euler_scheme::
+				generatePathsKernel1D<> <<<threadsPerBlock, blocksPerGrid >>>(this->gbm_, d_paths, states,
+					nPaths, nSteps, dt);
 
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel1D<double><< <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::
+				generatePathsKernel1D<><< <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
 				nPaths, nSteps, dt);
 		}
 		break;
@@ -59,13 +60,13 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel2D<double><<<gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel2D<><<<gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, nSteps, dt);
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel2D<double><< <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel2D<><< <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, nSteps, dt);
 		}
 		break;
@@ -92,13 +93,13 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel3D<double> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel3D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, depthSize, nSteps, dt);
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel3D<double> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel3D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, depthSize, nSteps, dt);
 		}
 		break;
@@ -118,14 +119,14 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel1D<double> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel1D<> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
 				nPaths, d_times, size);
 
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel1D<double> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel1D<> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
 				nPaths, d_times, size);
 		}
 		break;
@@ -148,13 +149,13 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel2D<double> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel2D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, d_times, size);
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel2D<double> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel2D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, d_times, size);
 		}
 		break;
@@ -181,13 +182,13 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel3D<double> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel3D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, depthSize, d_times, size);
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel3D<double> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel3D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, depthSize, d_times, size);
 		}
 		break;
@@ -342,13 +343,13 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel1D<float> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel1D<> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
 				nPaths, nSteps, dt);
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel1D<float><< <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel1D<><< <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
 				nPaths, nSteps, dt);
 		}
 		break;
@@ -371,13 +372,13 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel2D<float> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel2D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, nSteps, dt);
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel2D<float> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel2D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, nSteps, dt);
 		}
 		break;
@@ -402,13 +403,13 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel3D<float> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel3D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, depthSize, nSteps, dt);
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel3D<float> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel3D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, depthSize, nSteps, dt);
 		}
 		break;
@@ -429,13 +430,13 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel1D<float> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel1D<> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
 				nPaths, d_times, size);
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel1D<float> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel1D<> << <threadsPerBlock, blocksPerGrid >> > (this->gbm_, d_paths, states,
 				nPaths, d_times, size);
 		}
 		break;
@@ -458,13 +459,13 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel2D<float> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel2D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, d_times, size);
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel2D<float> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel2D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, d_times, size);
 		}
 		break;
@@ -489,13 +490,13 @@ namespace fdm_engine_cuda {
 		switch (scheme) {
 		case FDMScheme::EulerScheme:
 		{
-			gbm_kernels::euler_scheme::generatePathsKernel3D<float> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::euler_scheme::generatePathsKernel3D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, depthSize, d_times, size);
 		}
 		break;
 		case FDMScheme::MilsteinScheme:
 		{
-			gbm_kernels::milstein_scheme::generatePathsKernel3D<float> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
+			kernels::one_factor_kernels::milstein_scheme::generatePathsKernel3D<> << <gridSize, blockSize >> > (this->gbm_, d_paths, states,
 				widthSize, heightSize, depthSize, d_times, size);
 		}
 		break;
