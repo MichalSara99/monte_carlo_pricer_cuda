@@ -37,6 +37,7 @@ namespace kernels {
 						sdeBuilder.diffusion(i*dt, last)*sqrtf(dt)*curand_normal(&states[t_idx]);
 					d_paths[t] = last;
 				}
+
 			}
 
 
@@ -63,6 +64,7 @@ namespace kernels {
 						sdeBuilder.diffusion(i*dt, last)*sqrtf(dt)*curand_normal(&states[t_idx]);
 					d_paths[t] = last;
 				}
+
 			}
 
 
@@ -119,6 +121,8 @@ namespace kernels {
 						sdeBuilder.diffusion(d_times[i], last)*sqrtf(dt)*curand_normal(&states[t_idx]);
 					d_paths[t] = last;
 				}
+
+
 			}
 
 

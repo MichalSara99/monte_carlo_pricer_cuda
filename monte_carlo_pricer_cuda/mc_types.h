@@ -47,6 +47,9 @@ namespace mc_types {
 
 	enum class GPUConfiguration { Grid1D, Grid2D, Grid3D };
 
+	enum class SlicingType { PerTimeSlicing, PerPathSlicing };
+
+
 }
 
 

@@ -353,7 +353,7 @@ void asianOptionsHestonEulerCuda() {
 	double correlation{ 0.0 };
 	double maturityInYears{ 1.0 };
 	std::size_t numberSteps{ 720 }; // two times a day
-	std::size_t simuls{ 250'000 };
+	std::size_t simuls{ 450'000 };
 
 	// Construct the model:
 	sde_builder_cuda::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
@@ -407,7 +407,7 @@ void asianOptionsHestonMilsteinCuda() {
 	double correlation{ 0.0 };
 	double maturityInYears{ 1.0 };
 	std::size_t numberSteps{ 720 }; // two times a day
-	std::size_t simuls{ 250'000 };
+	std::size_t simuls{ 450'000 };
 
 	// Construct the model:
 	sde_builder_cuda::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
@@ -417,7 +417,7 @@ void asianOptionsHestonMilsteinCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(heston,simuls, FDMScheme::MilsteinScheme);
+	auto paths_euler = fdm_heston(heston,simuls, FDMScheme::MilsteinScheme,GPUConfiguration::Grid2D);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
