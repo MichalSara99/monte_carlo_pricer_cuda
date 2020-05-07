@@ -39,12 +39,14 @@ void europeanOptionsGBMEulerCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(gbm,simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_gbm(gbm,simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for GBM<1> ("<<simuls<<") took: " << end << " seconds.\n";
 
 	// last values:
 	std::cout << "==============================\n";
+	// transform for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	for (std::size_t t = 0; t < 30; ++t) {
 		std::cout << t << " paths: \n";
 		std::cout << paths_euler[t][719] << ", ";
@@ -98,7 +100,7 @@ void europeanOptionsGBMMilsteinCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(gbm,simuls, FDMScheme::MilsteinScheme);
+	auto collector = fdm_gbm(gbm,simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for GBM<1>  (" << simuls << ") took: " << end << " seconds.\n";
 
@@ -114,6 +116,8 @@ void europeanOptionsGBMMilsteinCuda() {
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
+	// transform for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	for (auto const &path : paths_euler) {
 		lastPrice = path.back();
 		call_sum += call_payoff(lastPrice);
@@ -154,7 +158,7 @@ void europeanOptionsHestonEulerCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(heston,simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_heston(heston,simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for Heston<2>  (" << simuls << ") took: " << end << " seconds.\n";
 
@@ -170,6 +174,8 @@ void europeanOptionsHestonEulerCuda() {
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
+	// transform first factor for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing,0);
 	for (auto const &path : paths_euler) {
 		lastPrice = path.back();
 		call_sum += call_payoff(lastPrice);
@@ -211,7 +217,7 @@ void europeanOptionsHestonMilsteinCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(heston,simuls, FDMScheme::MilsteinScheme);
+	auto collector = fdm_heston(heston,simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
@@ -227,6 +233,8 @@ void europeanOptionsHestonMilsteinCuda() {
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
+	// transform first factor for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing, 0);
 	for (auto const &path : paths_euler) {
 		lastPrice = path.back();
 		call_sum += call_payoff(lastPrice);
@@ -261,7 +269,7 @@ void asianOptionsGBMEulerCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(gbm,simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_gbm(gbm,simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for GBM<1> (" << simuls << ")  took: " << end << " seconds.\n";
 
@@ -276,6 +284,8 @@ void asianOptionsGBMEulerCuda() {
 
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
+	// transform  factor for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	for (auto const &path : paths_euler) {
 		call_sum += call_payoff(path);
 		put_sum += put_payoff(path);
@@ -309,7 +319,7 @@ void asianOptionsGBMMilsteinCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(gbm,simuls, FDMScheme::MilsteinScheme);
+	auto collector = fdm_gbm(gbm,simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
 
@@ -324,6 +334,8 @@ void asianOptionsGBMMilsteinCuda() {
 
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
+	// transform  factor for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	for (auto const &path : paths_euler) {
 		call_sum += call_payoff(path);
 		put_sum += put_payoff(path);
@@ -363,7 +375,7 @@ void asianOptionsHestonEulerCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(heston,simuls, FDMScheme::EulerScheme,GPUConfiguration::Grid2D);
+	auto collector = fdm_heston(heston,simuls, FDMScheme::EulerScheme,GPUConfiguration::Grid2D);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
@@ -378,6 +390,8 @@ void asianOptionsHestonEulerCuda() {
 
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
+	// transform first factor for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing,0);
 	for (auto const &path : paths_euler) {
 		call_sum += call_payoff(path);
 		put_sum += put_payoff(path);
@@ -407,7 +421,7 @@ void asianOptionsHestonMilsteinCuda() {
 	double correlation{ 0.0 };
 	double maturityInYears{ 1.0 };
 	std::size_t numberSteps{ 720 }; // two times a day
-	std::size_t simuls{ 450'000 };
+	std::size_t simuls{ 250'000 };
 
 	// Construct the model:
 	sde_builder_cuda::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
@@ -417,7 +431,7 @@ void asianOptionsHestonMilsteinCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{ maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(heston,simuls, FDMScheme::MilsteinScheme,GPUConfiguration::Grid2D);
+	auto collector = fdm_heston(heston,simuls, FDMScheme::MilsteinScheme,GPUConfiguration::Grid2D);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
@@ -432,6 +446,8 @@ void asianOptionsHestonMilsteinCuda() {
 
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
+	// transform first factor for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing, 0);
 	for (auto const &path : paths_euler) {
 		call_sum += call_payoff(path);
 		put_sum += put_payoff(path);
@@ -483,10 +499,12 @@ void europeanOptionsGBMEulerTPCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{timePoints };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(gbm,simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_gbm(gbm,simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
 
+	// transform factor for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	// last values:
 	for (std::size_t t = 0; t < 30; ++t) {
 		std::cout << t << " paths: \n";
@@ -556,7 +574,7 @@ void europeanOptionsGBMMilsteinTPCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ timePoints };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(gbm, simuls, FDMScheme::MilsteinScheme);
+	auto collector = fdm_gbm(gbm, simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for GBM<1>  (" << simuls << ") took: " << end << " seconds.\n";
 
@@ -572,6 +590,8 @@ void europeanOptionsGBMMilsteinTPCuda() {
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
+	// transform factor for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	for (auto const &path : paths_euler) {
 		lastPrice = path.back();
 		call_sum += call_payoff(lastPrice);
@@ -627,7 +647,7 @@ void europeanOptionsHestonEulerTPCuda() {
 	// Construct the engine: 
 	FdmCUDA<sde_builder_cuda::HestonModel<>::FactorCount, double> fdm_heston{ timePoints };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(heston, simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_heston(heston, simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for Heston<2>  (" << simuls << ") took: " << end << " seconds.\n";
 
@@ -643,6 +663,8 @@ void europeanOptionsHestonEulerTPCuda() {
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
+	// transform first factor for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing,0);
 	for (auto const &path : paths_euler) {
 		lastPrice = path.back();
 		call_sum += call_payoff(lastPrice);

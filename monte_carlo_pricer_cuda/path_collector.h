@@ -38,7 +38,7 @@ namespace path_collector {
 
 		virtual ~PathCollector(){}
 
-		std::vector<std::vector<T>> const transform(SlicingType type)const {
+		std::vector<std::vector<T>> const transform(SlicingType type) {
 			std::vector<std::vector<T>> collection;
 			if (type == SlicingType::PerPathSlicing) {
 				collection.resize(numberPaths_);
@@ -78,7 +78,7 @@ namespace path_collector {
 		virtual ~PathCollector() {}
 
 
-		std::vector<std::vector<T>> const transform(SlicingType type, std::size_t factorIndex)const {
+		std::vector<std::vector<T>> const transform(SlicingType type, std::size_t factorIndex) {
 			assert((factorIndex >= 0 && factorIndex <= 1));
 			std::vector<std::vector<T>> collection;
 			if (type == SlicingType::PerPathSlicing) {
@@ -113,15 +113,6 @@ void path_collector::PathCollector<1, T>::timeSlicing(std::vector<std::vector<T>
 		}
 		result[idx] = std::move(slice);
 	});
-
-
-	//for (std::size_t s = 0; s < result.size(); ++s) {
-	//	std::vector<double> slice(this->numberPaths_);
-	//	for (std::size_t p = 0; p < slice.size(); ++p) {
-	//		slice[p] = std::move(factorPaths_.get()[p + slice.size()*s]);
-	//	}
-	//	paths[s] = std::move(slice);
-	//}
 }
 
 template<typename T>
@@ -134,21 +125,32 @@ void path_collector::PathCollector<1, T>::pathSlicing(std::vector<std::vector<T>
 		}
 		result[idx] = std::move(path);
 	});
-
-
-
-	//for (std::size_t s = 0; s < result.size(); ++s) {
-	//	std::vector<T> path(this->pathSize_);
-	//	for (std::size_t p = 0; p < path.size(); ++p) {
-	//		path[p] = std::move(factorPaths_.get()[s + result.size()*p]);
-	//	}
-	//	paths[s] = std::move(path);
-	//}
 }
-
 
 template<typename T>
 void path_collector::PathCollector<2, T>::timeSlicing(std::vector<std::vector<T>> &result, std::size_t factorIdx) {
+	if (factorIdx == 0) {
+		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
+			std::vector<double> slice(this->numberPaths_);
+			for (std::size_t p = 0; p < slice.size(); ++p) {
+				slice[p] = std::move(factorPaths1_.get()[p + slice.size()*idx]);
+			}
+			result[idx] = std::move(slice);
+		});
+	}
+	else if (factorIdx == 1) {
+		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
+			std::vector<double> slice(this->numberPaths_);
+			for (std::size_t p = 0; p < slice.size(); ++p) {
+				slice[p] = std::move(factorPaths2_.get()[p + slice.size()*idx]);
+			}
+			result[idx] = std::move(slice);
+		});
+	}
+}
+
+template<typename T>
+void path_collector::PathCollector<2, T>::pathSlicing(std::vector<std::vector<T>> &result, std::size_t factorIdx) {
 	if (factorIdx == 0) {
 		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
 			std::vector<T> path(this->pathSize_);
@@ -169,27 +171,7 @@ void path_collector::PathCollector<2, T>::timeSlicing(std::vector<std::vector<T>
 	}
 }
 
-template<typename T>
-void path_collector::PathCollector<2, T>::pathSlicing(std::vector<std::vector<T>> &result, std::size_t factorIdx) {
-	if (factorIdx == 0) {
-		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
-			std::vector<double> slice(this->numberPaths_);
-			for (std::size_t p = 0; p < slice.size(); ++p) {
-				slice[p] = std::move(factorPaths1_.get()[p + slice.size()*idx]);
-			}
-			result[idx] = std::move(slice);
-		});
-	}
-	else if (factorIdx == 1) {
-		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
-			std::vector<double> slice(this->numberPaths_);
-			for (std::size_t p = 0; p < slice.size(); ++p) {
-				slice[p] = std::move(factorPaths2_.get()[p + slice.size()*idx]);
-			}
-			result[idx] = std::move(slice);
-		});
-	}
-}
+
 
 
 

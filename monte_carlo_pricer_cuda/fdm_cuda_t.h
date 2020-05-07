@@ -27,13 +27,15 @@ void gbm_cuda() {
 
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto paths = fdm(gbm, numberIterations,FDMScheme::MilsteinScheme);
+		auto collector = fdm(gbm, numberIterations,FDMScheme::MilsteinScheme);
 		auto end = std::chrono::system_clock::now();
 		std::cout << "Generating on 1D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 
 		std::cout << "===============================\n";
 
+		// transform for pricing:
+		auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 		double sum_call{ 0.0 };
 		double sum_put{ 0.0 };
 		for (std::size_t t = 0; t < paths.size(); ++t) {
@@ -48,12 +50,14 @@ void gbm_cuda() {
 	}
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto paths = fdm(gbm, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid2D);
+		auto collector = fdm(gbm, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid2D);
 		auto end = std::chrono::system_clock::now();
 
 		std::cout << "Generating on 2D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 		std::cout << "=============================\n";
+		// transform for pricing:
+		auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 		for (std::size_t t = 0; t < 30; ++t) {
 			std::cout << paths[t][719] << "\n";
 		}
@@ -74,12 +78,13 @@ void gbm_cuda() {
 	}
 
 	auto begin = std::chrono::system_clock::now();
-	auto paths = fdm(gbm, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid3D);
+	auto collector = fdm(gbm, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid3D);
 	auto end = std::chrono::system_clock::now();
 
 	std::cout << "Generating on 3D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 	std::cout << "=============================\n";
+	auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	for (std::size_t t = 0; t < 30; ++t) {
 		std::cout << paths[t][719] << "\n";
 	}
@@ -116,13 +121,14 @@ void abm_cuda() {
 
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto paths = fdm(abm, numberIterations, FDMScheme::MilsteinScheme);
+		auto collector = fdm(abm, numberIterations, FDMScheme::MilsteinScheme);
 		auto end = std::chrono::system_clock::now();
 		std::cout << "Generating on 1D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 
 		std::cout << "===============================\n";
-
+		//transfor for slicing:
+		auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 		double sum_call{ 0.0 };
 		double sum_put{ 0.0 };
 		for (std::size_t t = 0; t < paths.size(); ++t) {
@@ -137,12 +143,14 @@ void abm_cuda() {
 	}
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto paths = fdm(abm, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid2D);
+		auto collector = fdm(abm, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid2D);
 		auto end = std::chrono::system_clock::now();
 
 		std::cout << "Generating on 2D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 		std::cout << "=============================\n";
+		//transfor for slicing:
+		auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 		for (std::size_t t = 0; t < 30; ++t) {
 			std::cout << paths[t][719] << "\n";
 		}
@@ -163,12 +171,14 @@ void abm_cuda() {
 	}
 
 	auto begin = std::chrono::system_clock::now();
-	auto paths = fdm(abm, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid3D);
+	auto collector = fdm(abm, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid3D);
 	auto end = std::chrono::system_clock::now();
 
 	std::cout << "Generating on 3D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 	std::cout << "=============================\n";
+	//transfor for slicing:
+	auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	for (std::size_t t = 0; t < 30; ++t) {
 		std::cout << paths[t][719] << "\n";
 	}
@@ -207,13 +217,14 @@ void cev_cuda() {
 
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto paths = fdm(cev, numberIterations, FDMScheme::MilsteinScheme);
+		auto collector = fdm(cev, numberIterations, FDMScheme::MilsteinScheme);
 		auto end = std::chrono::system_clock::now();
 		std::cout << "Generating on 1D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 
 		std::cout << "===============================\n";
-
+		//transfor for slicing:
+		auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 		double sum_call{ 0.0 };
 		double sum_put{ 0.0 };
 		for (std::size_t t = 0; t < paths.size(); ++t) {
@@ -228,12 +239,14 @@ void cev_cuda() {
 	}
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto paths = fdm(cev, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid2D);
+		auto collector = fdm(cev, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid2D);
 		auto end = std::chrono::system_clock::now();
 
 		std::cout << "Generating on 2D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 		std::cout << "=============================\n";
+		//transfor for slicing:
+		auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 		for (std::size_t t = 0; t < 30; ++t) {
 			std::cout << paths[t][719] << "\n";
 		}
@@ -254,12 +267,14 @@ void cev_cuda() {
 	}
 
 	auto begin = std::chrono::system_clock::now();
-	auto paths = fdm(cev, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid3D);
+	auto collector = fdm(cev, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid3D);
 	auto end = std::chrono::system_clock::now();
 
 	std::cout << "Generating on 3D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 	std::cout << "=============================\n";
+	//transfor for slicing:
+	auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	for (std::size_t t = 0; t < 30; ++t) {
 		std::cout << paths[t][719] << "\n";
 	}
@@ -303,12 +318,14 @@ void heston_cuda() {
 
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto paths = fdm(heston, numberIterations, FDMScheme::MilsteinScheme);
+		auto collector = fdm(heston, numberIterations, FDMScheme::MilsteinScheme);
 		auto end = std::chrono::system_clock::now();
 		std::cout << "Generating on 1D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 
 		std::cout << "===============================\n";
+		//transfor for slicing:
+		auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing,0);
 		for (std::size_t t = 0; t < 30; ++t) {
 			std::cout << paths[t][719] << "\n";
 		}
@@ -330,19 +347,20 @@ void heston_cuda() {
 
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto paths = fdm(heston, numberIterations,FDMScheme::MilsteinScheme,GPUConfiguration::Grid2D);
+		auto collector = fdm(heston, numberIterations,FDMScheme::MilsteinScheme,GPUConfiguration::Grid2D);
 		auto end = std::chrono::system_clock::now();
 
 		std::cout << "Generating on 2D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 		std::cout << "=============================\n";
+		//transfer for slicing:
+		auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing, 0);
 		for (std::size_t t = 0; t < 30; ++t) {
 			std::cout << paths[t][719] << "\n";
 		}
 
 
 		std::cout << "===============================\n";
-
 		double sum_call{ 0.0 };
 		double sum_put{ 0.0 };
 		for (std::size_t t = 0; t < paths.size(); ++t) {
@@ -356,12 +374,14 @@ void heston_cuda() {
 	}
 
 	auto begin = std::chrono::system_clock::now();
-	auto paths = fdm(heston, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid3D);
+	auto collector = fdm(heston, numberIterations, FDMScheme::MilsteinScheme, GPUConfiguration::Grid3D);
 	auto end = std::chrono::system_clock::now();
 
 	std::cout << "Generating on 3D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
 
 	std::cout << "=============================\n";
+	//transfer for slicing:
+	auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing, 0);
 	for (std::size_t t = 0; t < 30; ++t) {
 		std::cout << paths[t][719] << "\n";
 	}

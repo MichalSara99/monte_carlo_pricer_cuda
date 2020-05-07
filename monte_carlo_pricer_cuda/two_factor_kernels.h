@@ -19,7 +19,7 @@ namespace kernels {
 			template<typename SDEBuilder,
 				typename T = SDEBuilder::value_type>
 				__global__
-				void generatePathsKernel1D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
+				void generatePathsKernel1D(SDEBuilder sdeBuilder, T* d_paths1, T* d_paths2, curandState_t *states,
 					unsigned int nPaths, unsigned int nSteps, T dt) {
 				// Path idx:
 				unsigned int const t_idx = blockDim.x*blockIdx.x + threadIdx.x;
@@ -36,7 +36,8 @@ namespace kernels {
 				T z2{};
 
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -46,7 +47,8 @@ namespace kernels {
 					var_new = var + sdeBuilder.drift2(i*dt, last, var)*dt +
 						sdeBuilder.diffusion2(i*dt, last, var)*sqrtf(dt)*
 						(sdeBuilder.rho() * z1 + sqrt(1.0 - sdeBuilder.rho()*sdeBuilder.rho()) * z2);
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -55,7 +57,7 @@ namespace kernels {
 			template<typename SDEBuilder,
 				typename T = SDEBuilder::value_type>
 				__global__
-				void generatePathsKernel2D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
+				void generatePathsKernel2D(SDEBuilder sdeBuilder, T* d_paths1, T* d_paths2, curandState_t *states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nSteps, T dt) {
 				// Path idx:
 				unsigned int const c_idx = blockDim.x*blockIdx.x + threadIdx.x;
@@ -75,7 +77,8 @@ namespace kernels {
 				T z2{};
 
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -85,7 +88,8 @@ namespace kernels {
 					var_new = var + sdeBuilder.drift2(i*dt, last, var)*dt +
 						sdeBuilder.diffusion2(i*dt, last, var)*sqrtf(dt)*
 						(sdeBuilder.rho() * z1 + sqrt(1.0 - sdeBuilder.rho()*sdeBuilder.rho()) * z2);
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -94,7 +98,7 @@ namespace kernels {
 			template<typename SDEBuilder,
 				typename T = SDEBuilder::value_type>
 				__global__
-				void generatePathsKernel3D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
+				void generatePathsKernel3D(SDEBuilder sdeBuilder, T* d_paths1, T* d_paths2, curandState_t *states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathsDepth,
 					unsigned int nSteps, T dt) {
 				// Path idx:
@@ -116,7 +120,8 @@ namespace kernels {
 				T z2{};
 
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -126,7 +131,8 @@ namespace kernels {
 					var_new = var + sdeBuilder.drift2(i*dt, last, var)*dt +
 						sdeBuilder.diffusion2(i*dt, last, var)*sqrtf(dt)*
 						(sdeBuilder.rho() * z1 + sqrt(1.0 - sdeBuilder.rho()*sdeBuilder.rho()) * z2);
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -139,7 +145,7 @@ namespace kernels {
 			template<typename SDEBuilder,
 				typename T = SDEBuilder::value_type>
 				__global__
-				void generatePathsKernel1D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
+				void generatePathsKernel1D(SDEBuilder sdeBuilder, T* d_paths1, T* d_paths2, curandState_t *states,
 					unsigned int nPaths, T const *d_times, unsigned int size) {
 				// Path idx:
 				unsigned int const t_idx = blockDim.x*blockIdx.x + threadIdx.x;
@@ -157,7 +163,8 @@ namespace kernels {
 				T dt{};
 
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -168,7 +175,8 @@ namespace kernels {
 					var_new = var + sdeBuilder.drift2(d_times[i], last, var)*dt +
 						sdeBuilder.diffusion2(d_times[i], last, var)*sqrtf(dt)*
 						(sdeBuilder.rho() * z1 + sqrt(1.0 - sdeBuilder.rho()*sdeBuilder.rho()) * z2);
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -177,7 +185,7 @@ namespace kernels {
 			template<typename SDEBuilder,
 				typename T = SDEBuilder::value_type>
 				__global__
-				void generatePathsKernel2D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
+				void generatePathsKernel2D(SDEBuilder sdeBuilder, T* d_paths1, T* d_paths2, curandState_t *states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight, T const *d_times, unsigned int size) {
 				// Path idx:
 				unsigned int const c_idx = blockDim.x*blockIdx.x + threadIdx.x;
@@ -198,7 +206,8 @@ namespace kernels {
 				T dt{};
 
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -209,7 +218,8 @@ namespace kernels {
 					var_new = var + sdeBuilder.drift2(d_times[i], last, var)*dt +
 						sdeBuilder.diffusion2(d_times[i], last, var)*sqrtf(dt)*
 						(sdeBuilder.rho() * z1 + sqrt(1.0 - sdeBuilder.rho()*sdeBuilder.rho()) * z2);
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -218,7 +228,7 @@ namespace kernels {
 			template<typename SDEBuilder,
 				typename T = SDEBuilder::value_type>
 				__global__
-				void generatePathsKernel3D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
+				void generatePathsKernel3D(SDEBuilder sdeBuilder, T* d_paths1, T* d_paths2, curandState_t *states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathsDepth,
 					T const *d_times, unsigned int size) {
 				// Path idx:
@@ -241,7 +251,8 @@ namespace kernels {
 				T dt{};
 
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -252,7 +263,8 @@ namespace kernels {
 					var_new = var + sdeBuilder.drift2(d_times[i], last, var)*dt +
 						sdeBuilder.diffusion2(d_times[i], last, var)*sqrtf(dt)*
 						(sdeBuilder.rho() * z1 + sqrt(1.0 - sdeBuilder.rho()*sdeBuilder.rho()) * z2);
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -269,7 +281,7 @@ namespace kernels {
 					typename T = SDEBuilder::value_type>
 			__global__
 			void generatePathsKernel1D(SDEBuilder sdeBuilder,
-					T *d_paths, curandState_t* states,
+					T *d_paths1, T *d_paths2, curandState_t* states,
 					unsigned int nPaths, unsigned int nSteps, T dt) {
 				// Path index
 				unsigned int const t_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -286,7 +298,8 @@ namespace kernels {
 				T z1{};
 				T z2{};
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths,++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -330,7 +343,8 @@ namespace kernels {
 							sdeBuilder.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
 							(dt)*z1*z2;
 
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -340,7 +354,7 @@ namespace kernels {
 				typename T = SDEBuilder::value_type>
 				__global__
 				void generatePathsKernel2D(SDEBuilder sdeBuilder,
-					T *d_paths, curandState_t* states,
+					T *d_paths1, T *d_paths2, curandState_t* states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nSteps, T dt) {
 				// Path index
 				unsigned int const c_idx = blockDim.x * blockIdx.x + threadIdx.x;
@@ -359,7 +373,8 @@ namespace kernels {
 				T z1{};
 				T z2{};
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -403,7 +418,8 @@ namespace kernels {
 							sdeBuilder.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
 							(dt)*z1*z2;
 
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -413,7 +429,7 @@ namespace kernels {
 				typename T = SDEBuilder::value_type>
 				__global__
 				void generatePathsKernel3D(SDEBuilder sdeBuilder,
-					T *d_paths, curandState_t* states,
+					T *d_paths1, T *d_paths2, curandState_t* states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathsDepth,
 					unsigned int nSteps, T dt) {
 				// Path index
@@ -434,7 +450,8 @@ namespace kernels {
 				T z1{};
 				T z2{};
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -478,7 +495,8 @@ namespace kernels {
 							sdeBuilder.diffusion2(i*dt, last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
 							(dt)*z1*z2;
 
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -495,7 +513,7 @@ namespace kernels {
 				typename T = SDEBuilder::value_type>
 				__global__
 				void generatePathsKernel1D(SDEBuilder sdeBuilder,
-					T *d_paths, curandState_t* states,
+					T *d_paths1, T *d_paths2, curandState_t* states,
 					unsigned int nPaths, T const *d_times, unsigned int size) {
 				// Path index
 				unsigned int const t_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -513,7 +531,8 @@ namespace kernels {
 				T z2{};
 				T dt{};
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -558,7 +577,8 @@ namespace kernels {
 							sdeBuilder.diffusion2(d_times[i], last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
 							(dt)*z1*z2;
 
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -568,7 +588,7 @@ namespace kernels {
 				typename T = SDEBuilder::value_type>
 				__global__
 				void generatePathsKernel2D(SDEBuilder sdeBuilder,
-					T *d_paths, curandState_t* states,
+					T *d_paths1, T *d_paths2, curandState_t* states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight, T const *d_times, unsigned int size) {
 				// Path index
 				const unsigned int c_idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -589,7 +609,8 @@ namespace kernels {
 				T z2{};
 				T dt{};
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -634,7 +655,8 @@ namespace kernels {
 							sdeBuilder.diffusion2(d_times[i], last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
 							(dt)*z1*z2;
 
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}
@@ -644,7 +666,7 @@ namespace kernels {
 				typename T = SDEBuilder::value_type>
 				__global__
 				void generatePathsKernel3D(SDEBuilder sdeBuilder,
-					T *d_paths, curandState_t* states,
+					T *d_paths1, T *d_paths2, curandState_t* states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathsDepth,
 					T const *d_times, unsigned int size) {
 				// Path index
@@ -667,7 +689,8 @@ namespace kernels {
 				T z2{};
 				T dt{};
 				unsigned int i{ 0 };
-				d_paths[t_idx] = last;
+				d_paths1[t_idx] = last;
+				d_paths2[t_idx] = var;
 
 				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z1 = curand_normal(&states[t_idx]);
@@ -712,7 +735,8 @@ namespace kernels {
 							sdeBuilder.diffusion2(d_times[i], last - 0.5*DIFF_STEP, var)) / (DIFF_STEP)) *
 							(dt)*z1*z2;
 
-					d_paths[t] = last_new;
+					d_paths1[t] = last_new;
+					d_paths2[t] = var_new;
 					last = last_new;
 					var = var_new;
 				}

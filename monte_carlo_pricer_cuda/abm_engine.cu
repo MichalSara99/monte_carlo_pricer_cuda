@@ -7,7 +7,7 @@
 #include"random_kernel_initializers.cuh"
 #include"mc_types.h"
 #include"one_factor_kernels.h"
-
+#include"path_collector.h"
 
 
 namespace fdm_engine_cuda {
@@ -196,7 +196,8 @@ namespace fdm_engine_cuda {
 	//====== equidistant overloads
 	//=====================================================================
 
-	fdm_engine_cuda::PathValuesType<fdm_engine_cuda::PathValuesType<double>>
+	//fdm_engine_cuda::PathValuesType<fdm_engine_cuda::PathValuesType<double>>
+	std::shared_ptr<path_collector::PathCollector<1, double>> const
 		fdm_engine_cuda::ABMPathEngineDouble::simulate(unsigned int nPaths, unsigned int nSteps, double dt,
 			FDMScheme scheme, GPUConfiguration config)const {
 
@@ -237,25 +238,34 @@ namespace fdm_engine_cuda {
 			cudaMemcpyKind::cudaMemcpyDeviceToHost);
 
 
-		std::vector<std::vector<double>> paths(nPaths);
-		for (std::size_t s = 0; s < paths.size(); ++s) {
-			std::vector<double> path(nSteps);
-			for (std::size_t p = 0; p < path.size(); ++p) {
-				path[p] = std::move(h_paths[s + paths.size()*p]);
-			}
-			paths[s] = std::move(path);
-		}
-		free(h_paths);
+		//std::vector<std::vector<double>> paths(nPaths);
+		//for (std::size_t s = 0; s < paths.size(); ++s) {
+		//	std::vector<double> path(nSteps);
+		//	for (std::size_t p = 0; p < path.size(); ++p) {
+		//		path[p] = std::move(h_paths[s + paths.size()*p]);
+		//	}
+		//	paths[s] = std::move(path);
+		//}
+		//free(h_paths);
+
 		cudaFree(d_paths);
 		cudaFree(states);
-		return paths;
+
+		// wrapp the raw pointer into unique_ptr:
+		std::unique_ptr<double> uptr(h_paths);
+
+
+		return std::shared_ptr<path_collector::PathCollector<1, double>>
+			(new path_collector::PathCollector<1, double>{ std::move(uptr),nPaths,nSteps });
+
 	}
 
 	//=====================================================================
 	//====== non-equidistant overloads
 	//=====================================================================
 
-	fdm_engine_cuda::PathValuesType<fdm_engine_cuda::PathValuesType<double>>
+	//fdm_engine_cuda::PathValuesType<fdm_engine_cuda::PathValuesType<double>>
+	std::shared_ptr<path_collector::PathCollector<1, double>> const
 		fdm_engine_cuda::ABMPathEngineDouble::simulate(unsigned int nPaths, TimePointsType<double> const &timePoints,
 			FDMScheme scheme, GPUConfiguration config)const {
 
@@ -310,20 +320,28 @@ namespace fdm_engine_cuda {
 			cudaMemcpyKind::cudaMemcpyDeviceToHost);
 
 
-		std::vector<std::vector<double>> paths(nPaths);
-		for (std::size_t s = 0; s < paths.size(); ++s) {
-			std::vector<double> path(size);
-			for (std::size_t p = 0; p < path.size(); ++p) {
-				path[p] = std::move(h_paths[s + paths.size()*p]);
-			}
-			paths[s] = std::move(path);
-		}
+		//std::vector<std::vector<double>> paths(nPaths);
+		//for (std::size_t s = 0; s < paths.size(); ++s) {
+		//	std::vector<double> path(size);
+		//	for (std::size_t p = 0; p < path.size(); ++p) {
+		//		path[p] = std::move(h_paths[s + paths.size()*p]);
+		//	}
+		//	paths[s] = std::move(path);
+		//}
+		//free(h_paths);
+
+
 		free(h_times);
-		free(h_paths);
 		cudaFree(d_paths);
 		cudaFree(d_times);
 		cudaFree(states);
-		return paths;
+
+		// wrapp the raw pointer into unique_ptr:
+		std::unique_ptr<double> uptr(h_paths);
+
+		return std::shared_ptr<path_collector::PathCollector<1, double>>
+			(new path_collector::PathCollector<1, double>{ std::move(uptr),nPaths,size });
+
 	}
 
 	//=====================================================================
@@ -501,7 +519,8 @@ namespace fdm_engine_cuda {
 	//====== equidistant overloads
 	//=====================================================================
 
-	fdm_engine_cuda::PathValuesType<fdm_engine_cuda::PathValuesType<float>>
+	//fdm_engine_cuda::PathValuesType<fdm_engine_cuda::PathValuesType<float>>
+	std::shared_ptr<path_collector::PathCollector<1, float>> const
 		fdm_engine_cuda::ABMPathEngineFloat::simulate(unsigned int nPaths, unsigned int nSteps, float dt,
 			FDMScheme scheme, GPUConfiguration config)const {
 
@@ -542,28 +561,35 @@ namespace fdm_engine_cuda {
 		cudaMemcpy(h_paths, d_paths, nPaths*nSteps * sizeof(float),
 			cudaMemcpyKind::cudaMemcpyDeviceToHost);
 
-		std::vector<std::vector<float>> paths(nPaths);
-		for (std::size_t s = 0; s < paths.size(); ++s) {
-			std::vector<float> path(nSteps);
-			for (std::size_t p = 0; p < path.size(); ++p) {
-				path[p] = std::move(h_paths[s + paths.size()*p]);
-			}
-			paths[s] = std::move(path);
-		}
+		//std::vector<std::vector<float>> paths(nPaths);
+		//for (std::size_t s = 0; s < paths.size(); ++s) {
+		//	std::vector<float> path(nSteps);
+		//	for (std::size_t p = 0; p < path.size(); ++p) {
+		//		path[p] = std::move(h_paths[s + paths.size()*p]);
+		//	}
+		//	paths[s] = std::move(path);
+		//}
+		//free(h_paths);
 
 
-		free(h_paths);
 		cudaFree(d_paths);
 		cudaFree(states);
 
-		return paths;
+		// wrapp the raw pointer into unique_ptr:
+		std::unique_ptr<float> uptr(h_paths);
+
+
+		return std::shared_ptr<path_collector::PathCollector<1, float>>
+			(new path_collector::PathCollector<1, float>{ std::move(uptr),nPaths,nSteps });
+
 	}
 
 	//=====================================================================
 	//====== non-equidistant overloads
 	//=====================================================================
 
-	fdm_engine_cuda::PathValuesType<fdm_engine_cuda::PathValuesType<float>>
+	//fdm_engine_cuda::PathValuesType<fdm_engine_cuda::PathValuesType<float>>
+	std::shared_ptr<path_collector::PathCollector<1, float>> const
 		fdm_engine_cuda::ABMPathEngineFloat::simulate(unsigned int nPaths, TimePointsType<float> const &timePoints,
 			FDMScheme scheme, GPUConfiguration config)const {
 
@@ -618,20 +644,28 @@ namespace fdm_engine_cuda {
 			cudaMemcpyKind::cudaMemcpyDeviceToHost);
 
 
-		std::vector<std::vector<float>> paths(nPaths);
-		for (std::size_t s = 0; s < paths.size(); ++s) {
-			std::vector<float> path(size);
-			for (std::size_t p = 0; p < path.size(); ++p) {
-				path[p] = std::move(h_paths[s + paths.size()*p]);
-			}
-			paths[s] = std::move(path);
-		}
+		//std::vector<std::vector<float>> paths(nPaths);
+		//for (std::size_t s = 0; s < paths.size(); ++s) {
+		//	std::vector<float> path(size);
+		//	for (std::size_t p = 0; p < path.size(); ++p) {
+		//		path[p] = std::move(h_paths[s + paths.size()*p]);
+		//	}
+		//	paths[s] = std::move(path);
+		//}
+		//free(h_paths);
+
 		free(h_times);
-		free(h_paths);
 		cudaFree(d_paths);
 		cudaFree(d_times);
 		cudaFree(states);
-		return paths;
+
+		// wrapp the raw pointer into unique_ptr:
+		std::unique_ptr<float> uptr(h_paths);
+
+
+		return std::shared_ptr<path_collector::PathCollector<1, float>>
+			(new path_collector::PathCollector<1, float>{ std::move(uptr),nPaths,size });
+
 	}
 
 }

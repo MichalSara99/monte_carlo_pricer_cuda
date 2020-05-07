@@ -4,6 +4,7 @@
 
 #include"sde_builder_cuda.h"
 #include"mc_types.h"
+#include"path_collector.h"
 
 namespace finite_difference_method_cuda {
 
@@ -38,8 +39,8 @@ namespace finite_difference_method_cuda {
 		{}
 
 		template<typename SDECudaModel,
-			typename = typename std::enable_if<SDECudaModel::FactorCount == 1>::type>
-			PathValuesType<PathValuesType<T>>
+				typename = typename std::enable_if<SDECudaModel::FactorCount == 1>::type>
+		std::shared_ptr<path_collector::PathCollector<1, T>> const
 			operator()(SDECudaModel model, std::size_t iterations,
 				FDMScheme scheme = FDMScheme::EulerScheme,
 				GPUConfiguration config = GPUConfiguration::Grid1D) const {
@@ -75,7 +76,7 @@ namespace finite_difference_method_cuda {
 
 		template<typename SDECudaModel,
 			typename = typename std::enable_if<SDECudaModel::FactorCount == 2>::type>
-			PathValuesType<PathValuesType<T>>
+		std::shared_ptr<path_collector::PathCollector<2, T>> const
 			operator()(SDECudaModel model, std::size_t iterations,
 				FDMScheme scheme = FDMScheme::EulerScheme,
 				GPUConfiguration config = GPUConfiguration::Grid1D) const {
