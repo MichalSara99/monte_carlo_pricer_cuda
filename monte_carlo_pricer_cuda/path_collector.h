@@ -5,6 +5,7 @@
 #include<memory>
 #include<cassert>
 #include"mc_types.h"
+#include<ppl.h>
 
 
 namespace path_collector {
@@ -49,6 +50,8 @@ namespace path_collector {
 			return collection;
 		}
 
+		T* data()const { return factorPaths_.get(); }
+
 
 	};
 
@@ -88,6 +91,12 @@ namespace path_collector {
 			return collection;
 		}
 
+		T* data(std::size_t factorIdx)const {
+			assert((factorIndex >= 0 && factorIndex <= 1));
+			if (factorIdx == 0)return factorPaths1_.get();
+			return factorPaths2_.get();
+		}
+
 	};
 }
 
@@ -96,23 +105,90 @@ namespace path_collector {
 
 template<typename T>
 void path_collector::PathCollector<1, T>::timeSlicing(std::vector<std::vector<T>> &result) {
-	throw std::exception("noit yet implemented");
+
+	concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
+		std::vector<double> slice(this->numberPaths_);
+		for (std::size_t p = 0; p < slice.size(); ++p) {
+			slice[p] = std::move(factorPaths_.get()[p + slice.size()*idx]);
+		}
+		result[idx] = std::move(slice);
+	});
+
+
+	//for (std::size_t s = 0; s < result.size(); ++s) {
+	//	std::vector<double> slice(this->numberPaths_);
+	//	for (std::size_t p = 0; p < slice.size(); ++p) {
+	//		slice[p] = std::move(factorPaths_.get()[p + slice.size()*s]);
+	//	}
+	//	paths[s] = std::move(slice);
+	//}
 }
 
 template<typename T>
 void path_collector::PathCollector<1, T>::pathSlicing(std::vector<std::vector<T>> &result) {
-	throw std::exception("noit yet implemented");
+
+	concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
+		std::vector<T> path(this->pathSize_);
+		for (std::size_t p = 0; p < path.size(); ++p) {
+			path[p] = std::move(factorPaths_.get()[idx + result.size()*p]);
+		}
+		result[idx] = std::move(path);
+	});
+
+
+
+	//for (std::size_t s = 0; s < result.size(); ++s) {
+	//	std::vector<T> path(this->pathSize_);
+	//	for (std::size_t p = 0; p < path.size(); ++p) {
+	//		path[p] = std::move(factorPaths_.get()[s + result.size()*p]);
+	//	}
+	//	paths[s] = std::move(path);
+	//}
 }
 
 
 template<typename T>
 void path_collector::PathCollector<2, T>::timeSlicing(std::vector<std::vector<T>> &result, std::size_t factorIdx) {
-	throw std::exception("noit yet implemented");
+	if (factorIdx == 0) {
+		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
+			std::vector<T> path(this->pathSize_);
+			for (std::size_t p = 0; p < path.size(); ++p) {
+				path[p] = std::move(factorPaths1_.get()[idx + result.size()*p]);
+			}
+			result[idx] = std::move(path);
+		});
+	}
+	else if (factorIdx == 1) {
+		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
+			std::vector<T> path(this->pathSize_);
+			for (std::size_t p = 0; p < path.size(); ++p) {
+				path[p] = std::move(factorPaths2_.get()[idx + result.size()*p]);
+			}
+			result[idx] = std::move(path);
+		});
+	}
 }
 
 template<typename T>
 void path_collector::PathCollector<2, T>::pathSlicing(std::vector<std::vector<T>> &result, std::size_t factorIdx) {
-	throw std::exception("noit yet implemented");
+	if (factorIdx == 0) {
+		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
+			std::vector<double> slice(this->numberPaths_);
+			for (std::size_t p = 0; p < slice.size(); ++p) {
+				slice[p] = std::move(factorPaths1_.get()[p + slice.size()*idx]);
+			}
+			result[idx] = std::move(slice);
+		});
+	}
+	else if (factorIdx == 1) {
+		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
+			std::vector<double> slice(this->numberPaths_);
+			for (std::size_t p = 0; p < slice.size(); ++p) {
+				slice[p] = std::move(factorPaths2_.get()[p + slice.size()*idx]);
+			}
+			result[idx] = std::move(slice);
+		});
+	}
 }
 
 
