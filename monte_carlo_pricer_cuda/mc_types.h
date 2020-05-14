@@ -8,14 +8,14 @@
 #include<tuple>
 
 // For 1D paths:
-#define THREADS_PER_BLOCK 512
+#define THREADS_PER_BLOCK 1024 //512
 // For 2D paths:
 // Note that 32 * 16 = 512 like in the 1D path
-#define THREADS_2D_PER_BLOCK_X 32
-#define THREADS_2D_PER_BLOCK_Y 16
+#define THREADS_2D_PER_BLOCK_X 32//32
+#define THREADS_2D_PER_BLOCK_Y 32//16
 // For 3D paths:
 // Note that 8 * 8 * 8 = 512 like in the 1D path
-#define THREADS_3D_PER_BLOCK_X 8
+#define THREADS_3D_PER_BLOCK_X 16
 #define THREADS_3D_PER_BLOCK_Y 8
 #define THREADS_3D_PER_BLOCK_Z 8
 // step for numerical differentiation:

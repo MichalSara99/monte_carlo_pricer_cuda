@@ -18,7 +18,12 @@ namespace finite_difference_method {
 
 
 	template<typename T, typename ...Ts>
-	using asyncKernel = std::function<PathValuesType<T>(Ts...)>;
+	using asyncKernel1 = std::function<PathValuesType<T>(Ts...)>;
+
+	template<typename T, typename ...Ts>
+	using asyncKernel2 = std::function<std::pair<PathValuesType<T>, PathValuesType<T>>(Ts...)>;
+
+
 
 	template<std::size_t FactorCount, typename T, typename ...Ts>
 	class SchemeBuilder {
@@ -67,8 +72,8 @@ namespace finite_difference_method {
 			T correlation)
 			:model_{ model }, correlation_{ correlation } {}
 
-		virtual PathValuesType<T> simulate(std::random_device::result_type seed) = 0;
-		virtual PathValuesType<T> simulateWithTimePoints(std::random_device::result_type seed,
+		virtual std::pair<PathValuesType<T>, PathValuesType<T>> simulate(std::random_device::result_type seed) = 0;
+		virtual std::pair<PathValuesType<T>, PathValuesType<T>> simulateWithTimePoints(std::random_device::result_type seed,
 			TimePointsType<T> &timePoints) = 0;
 
 	};
@@ -103,11 +108,12 @@ namespace finite_difference_method {
 			path[0] = this->model_->initCondition();
 			auto spot = this->model_->initCondition();
 			T spotNew{};
+			T const dt{ this->delta_ };
 			for (std::size_t i = 1; i < path.size(); ++i) {
 				spotNew = spot +
-					this->model_->drift((i - 1)*(this->delta_), spot)*(this->delta_) +
-					this->model_->diffusion((i - 1)*(this->delta_), spot) *
-					std::sqrt((this->delta_)) * normal_(mt_);
+					this->model_->drift((i - 1)*dt, spot)*dt +
+					this->model_->diffusion((i - 1)*dt, spot) *
+					std::sqrt(dt) * normal_(mt_);
 				path[i] = spotNew;
 				spot = spotNew;
 			}
@@ -121,11 +127,15 @@ namespace finite_difference_method {
 			path[0] = this->model_->initCondition();
 			auto spot = this->model_->initCondition();
 			T spotNew{};
+			T dt{};
+			T tp{};
 			for (std::size_t i = 1; i < path.size(); ++i) {
+				dt = timePoints[i] - timePoints[i - 1];
+				tp = timePoints[i - 1];
 				spotNew = spot +
-					this->model_->drift(timePoints[i - 1], spot)*(timePoints[i] - timePoints[i - 1]) +
-					this->model_->diffusion(timePoints[i - 1], spot) *
-					std::sqrt((timePoints[i] - timePoints[i - 1])) * normal_(mt_);
+					this->model_->drift(tp, spot)*dt +
+					this->model_->diffusion(tp, spot) *
+					std::sqrt(dt) * normal_(mt_);
 				path[i] = spotNew;
 				spot = spotNew;
 			}
@@ -150,69 +160,80 @@ namespace finite_difference_method {
 			T correlation) :
 			SchemeBuilder<2, T, T, T, T>{ model,correlation } {}
 
-		PathValuesType<T> simulate(std::random_device::result_type seed)override {
+		std::pair<PathValuesType<T>, PathValuesType<T>> simulate(std::random_device::result_type seed)override {
 			this->mt_.seed(seed);
 			T z1{};
 			T z2{};
-			PathValuesType<T> path(this->numberSteps_);
+			PathValuesType<T> path0(this->numberSteps_);
+			PathValuesType<T> path1(this->numberSteps_);
 			auto firstModel = std::get<0>(this->model_);
 			auto secondModel = std::get<1>(this->model_);
-			path[0] = firstModel->initCondition();
+			path0[0] = firstModel->initCondition();
+			path1[0] = secondModel->initCondition();
 			auto firstSpot = firstModel->initCondition();
 			T firstSpotNew{};
 			auto secondSpot = secondModel->initCondition();
 			T secondSpotNew{};
+			T const dt{ this->delta_ };
 
-			for (std::size_t i = 1; i < path.size(); ++i) {
+			for (std::size_t i = 1; i < path0.size(); ++i) {
 				z1 = normal1_(mt_);
 				z2 = normal2_(mt_);
 				firstSpotNew = firstSpot +
-					firstModel->drift((i - 1)*(this->delta_), firstSpot, secondSpot)*(this->delta_) +
-					firstModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot) *
-					std::sqrt((this->delta_)) * z1;
+					firstModel->drift((i - 1)*dt, firstSpot, secondSpot)*dt +
+					firstModel->diffusion((i - 1)*dt, firstSpot, secondSpot) *
+					std::sqrt(dt) * z1;
 				secondSpotNew = secondSpot +
-					secondModel->drift((i - 1)*(this->delta_), firstSpot, secondSpot)*(this->delta_) +
-					secondModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot) *
-					std::sqrt((this->delta_)) *
+					secondModel->drift((i - 1)*dt, firstSpot, secondSpot)*dt +
+					secondModel->diffusion((i - 1)*dt, firstSpot, secondSpot) *
+					std::sqrt(dt) *
 					(this->correlation_ * z1 + std::sqrt(1.0 - (this->correlation_ * this->correlation_)) * z2);
-				path[i] = firstSpotNew;
+				path0[i] = firstSpotNew;
+				path1[i] = secondSpotNew;
 				firstSpot = firstSpotNew;
 				secondSpot = secondSpotNew;
 			}
-			return path;
+			return std::make_pair(path0,path1);
 		}
 
-		PathValuesType<T> simulateWithTimePoints(std::random_device::result_type seed, TimePointsType<T> &timePoints)override {
+		std::pair<PathValuesType<T>, PathValuesType<T>> simulateWithTimePoints(std::random_device::result_type seed, TimePointsType<T> &timePoints)override {
 			this->mt_.seed(seed);
 			T z1{};
 			T z2{};
 			assert(!timePoints.empty());
-			PathValuesType<T> path(timePoints.size());
+			PathValuesType<T> path0(timePoints.size());
+			PathValuesType<T> path1(timePoints.size());
 			auto firstModel = std::get<0>(this->model_);
 			auto secondModel = std::get<1>(this->model_);
-			path[0] = firstModel->initCondition();
+			path0[0] = firstModel->initCondition();
+			path1[0] = secondModel->initCondition();
 			auto firstSpot = firstModel->initCondition();
 			T firstSpotNew{};
 			auto secondSpot = secondModel->initCondition();
 			T secondSpotNew{};
+			T dt{};
+			T tp{};
 
-			for (std::size_t i = 1; i < path.size(); ++i) {
+			for (std::size_t i = 1; i < path0.size(); ++i) {
 				z1 = normal1_(mt_);
 				z2 = normal2_(mt_);
+				dt = timePoints[i] - timePoints[i - 1];
+				tp = timePoints[i - 1];
 				firstSpotNew = firstSpot +
-					firstModel->drift(timePoints[i - 1], firstSpot, secondSpot)*(timePoints[i] - timePoints[i - 1]) +
-					firstModel->diffusion(timePoints[i - 1], firstSpot, secondSpot) *
-					std::sqrt(timePoints[i] - timePoints[i - 1]) * z1;
+					firstModel->drift(tp, firstSpot, secondSpot)*dt +
+					firstModel->diffusion(tp, firstSpot, secondSpot) *
+					std::sqrt(dt) * z1;
 				secondSpotNew = secondSpot +
-					secondModel->drift(timePoints[i - 1], firstSpot, secondSpot)*(timePoints[i] - timePoints[i - 1]) +
-					secondModel->diffusion(timePoints[i - 1], firstSpot, secondSpot) *
-					std::sqrt(timePoints[i] - timePoints[i - 1]) *
+					secondModel->drift(tp, firstSpot, secondSpot)*dt +
+					secondModel->diffusion(tp, firstSpot, secondSpot) *
+					std::sqrt(dt) *
 					(this->correlation_ * z1 + std::sqrt(1.0 - (this->correlation_*this->correlation_)) * z2);
-				path[i] = firstSpotNew;
+				path0[i] = firstSpotNew;
+				path1[i] = secondSpotNew;
 				firstSpot = firstSpotNew;
 				secondSpot = secondSpotNew;
 			}
-			return path;
+			return std::make_pair(path0,path1);
 		}
 
 	};
@@ -253,16 +274,19 @@ namespace finite_difference_method {
 			auto spot = this->model_->initCondition();
 			T spotNew{};
 			T z{};
+			T const dt{ this->delta_ };
+			T const stp{ this->step_ };
+
 			for (std::size_t i = 1; i < path.size(); ++i) {
 				z = normal_(mt_);
 				spotNew = spot +
-					this->model_->drift((i - 1)*(this->delta_), spot)*(this->delta_) +
-					this->model_->diffusion((i - 1)*(this->delta_), spot) *
-					std::sqrt((this->delta_)) * z +
-					0.5*this->model_->diffusion((i - 1) * (this->delta_), spot) *
-					((this->model_->diffusion((i - 1) * (this->delta_), spot + 0.5*(this->step_)) -
-						this->model_->diffusion((i - 1) * (this->delta_), spot - 0.5*(this->step_))) / (this->step_))*
-						((std::sqrt(this->delta_)*z)*(std::sqrt(this->delta_)*z) - (this->delta_));
+					this->model_->drift((i - 1)*dt, spot)*dt +
+					this->model_->diffusion((i - 1)*dt, spot) *
+					std::sqrt(dt) * z +
+					0.5*this->model_->diffusion((i - 1) * dt, spot) *
+					((this->model_->diffusion((i - 1) * dt, spot + 0.5*stp) -
+						this->model_->diffusion((i - 1) * dt, spot - 0.5*stp)) / stp)*
+						((std::sqrt(dt)*z)*(std::sqrt(dt)*z) - dt);
 				path[i] = spotNew;
 				spot = spotNew;
 			}
@@ -277,17 +301,21 @@ namespace finite_difference_method {
 			auto spot = this->model_->initCondition();
 			T spotNew{};
 			T z{};
+			T dt{};
+			T tp{};
+			T sqrtdt{};
 			for (std::size_t i = 1; i < path.size(); ++i) {
 				z = normal_(mt_);
+				dt = timePoints[i] - timePoints[i - 1];
+				tp = timePoints[i - 1];
+				sqrtdt = std::sqrt(dt);
 				spotNew = spot +
-					this->model_->drift(timePoints[i - 1], spot)*(timePoints[i] - timePoints[i - 1]) +
-					this->model_->diffusion(timePoints[i - 1], spot) *
-					std::sqrt(timePoints[i] - timePoints[i - 1]) * z +
-					0.5*this->model_->diffusion(timePoints[i - 1], spot)*
-					((this->model_->diffusion(timePoints[i - 1], spot + 0.5*(this->step_)) -
-						this->model_->diffusion(timePoints[i - 1], spot - 0.5*(this->step_))) / (this->step_))*
-						((std::sqrt(timePoints[i] - timePoints[i - 1])*z)*(std::sqrt(timePoints[i] - timePoints[i - 1])*z) -
-					(timePoints[i] - timePoints[i - 1]));
+					this->model_->drift(tp, spot)*dt +
+					this->model_->diffusion(tp, spot)*sqrtdt * z +
+					0.5*this->model_->diffusion(tp, spot)*
+					((this->model_->diffusion(tp, spot + 0.5*(this->step_)) -
+						this->model_->diffusion(tp, spot - 0.5*(this->step_))) / (this->step_))*
+						((sqrtdt*z)*(sqrtdt*z) -(dt));
 				path[i] = spotNew;
 				spot = spotNew;
 			}
@@ -314,130 +342,144 @@ namespace finite_difference_method {
 			T correlation) :
 			SchemeBuilder<2, T, T, T, T>{ model,correlation } {}
 
-		PathValuesType<T> simulate(std::random_device::result_type seed) override {
+		std::pair<PathValuesType<T>, PathValuesType<T>> simulate(std::random_device::result_type seed) override {
 			mt_.seed(seed);
 			T z1{};
 			T z2{};
 
-			PathValuesType<T> path(this->numberSteps_);
+			PathValuesType<T> path0(this->numberSteps_);
+			PathValuesType<T> path1(this->numberSteps_);
 			auto firstModel = std::get<0>(this->model_);
 			auto secondModel = std::get<1>(this->model_);
-			path[0] = firstModel->initCondition();
+			path0[0] = firstModel->initCondition();
+			path1[0] = secondModel->initCondition();
 			auto firstSpot = firstModel->initCondition();
 			T firstSpotNew{};
 			auto secondSpot = secondModel->initCondition();
 			T secondSpotNew{};
+			T sqrtdt{ std::sqrt(this->delta_) };
+			T const dt{ this->delta_ };
+			T const stp{ this->step_ };
+			T const corr{ this->correlation_ };
 
-			for (std::size_t i = 1; i < path.size(); ++i) {
+			for (std::size_t i = 1; i < path0.size(); ++i) {
 				z1 = normal1_(mt_);
 				z2 = normal2_(mt_);
 
 				firstSpotNew = firstSpot +
-					firstModel->drift((i - 1)*(this->delta_), firstSpot, secondSpot)*(this->delta_) +
-					firstModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot) *
-					std::sqrt((this->delta_)) * z1 +
-					0.5*firstModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot) *
-					((firstModel->diffusion((i - 1)*(this->delta_), firstSpot + 0.5*(this->step_), secondSpot) -
-						firstModel->diffusion((i - 1)*(this->delta_), firstSpot - 0.5*(this->step_), secondSpot)) / (this->step_))*
-						(this->delta_)*((z1)*(z1)-1.0) +
-					0.5*(this->correlation_)*secondModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot) *
-					((firstModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot + 0.5*(this->step_)) -
-						firstModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot - 0.5*(this->step_))) / (this->step_)) *
-						(this->delta_)*((z1)*(z1)-1.0) +
-					std::sqrt(1.0 - (this->correlation_)*(this->correlation_))*
-					secondModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot)*
-					((firstModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot + 0.5*(this->step_)) -
-						firstModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot - 0.5*(this->step_))) / (this->step_)) *
-						(this->delta_)*z1*z2;
+					firstModel->drift((i - 1)*dt, firstSpot, secondSpot)*dt +
+					firstModel->diffusion((i - 1)*dt, firstSpot, secondSpot) *sqrtdt * z1 +
+					0.5*firstModel->diffusion((i - 1)*dt, firstSpot, secondSpot) *
+					((firstModel->diffusion((i - 1)*dt, firstSpot + 0.5*stp, secondSpot) -
+						firstModel->diffusion((i - 1)*dt, firstSpot - 0.5*stp, secondSpot)) / stp)*
+					dt*((z1)*(z1)-1.0) +
+					0.5*corr*secondModel->diffusion((i - 1)*dt, firstSpot, secondSpot) *
+					((firstModel->diffusion((i - 1)*dt, firstSpot, secondSpot + 0.5*stp) -
+						firstModel->diffusion((i - 1)*dt, firstSpot, secondSpot - 0.5*stp)) / stp) *
+					dt*((z1)*(z1)-1.0) +
+					std::sqrt(1.0 - corr * corr)*
+					secondModel->diffusion((i - 1)*dt, firstSpot, secondSpot)*
+					((firstModel->diffusion((i - 1)*dt, firstSpot, secondSpot + 0.5*stp) -
+						firstModel->diffusion((i - 1)*dt, firstSpot, secondSpot - 0.5*stp)) / stp) *
+					dt*z1*z2;
 
 				secondSpotNew = secondSpot +
-					secondModel->drift((i - 1)*(this->delta_), firstSpot, secondSpot)*(this->delta_) +
-					secondModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot) *
-					std::sqrt((this->delta_)) *
-					(this->correlation_ * z1 + std::sqrt(1.0 - (this->correlation_ * this->correlation_)) * z2) +
-					0.5*(this->correlation_)*firstModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot)*
-					((secondModel->diffusion((i - 1)*(this->delta_), firstSpot + 0.5*(this->step_), secondSpot) -
-						secondModel->diffusion((i - 1)*(this->delta_), firstSpot - 0.5*(this->step_), secondSpot)) / (this->step_))*
-						(this->delta_) * ((z1)*(z1)-1.0) +
-					0.5 * secondModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot)*
-					((secondModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot + 0.5*(this->step_)) -
-						secondModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot - 0.5*(this->step_))) / (this->step_))*
-						(this->delta_) * (((this->correlation_)*z1 + std::sqrt(1.0 - (this->correlation_)*(this->correlation_))*z2)*
-					((this->correlation_)*z1 + std::sqrt(1.0 - (this->correlation_)*(this->correlation_))*z2) - 1.0) +
-					std::sqrt(1.0 - (this->correlation_)*(this->correlation_))*
-					firstModel->diffusion((i - 1)*(this->delta_), firstSpot, secondSpot)*
-					((secondModel->diffusion((i - 1)*(this->delta_), firstSpot + 0.5*(this->step_), secondSpot) -
-						secondModel->diffusion((i - 1)*(this->delta_), firstSpot - 0.5*(this->step_), secondSpot)) / (this->step_)) *
-						(this->delta_)*z1*z2;
+					secondModel->drift((i - 1)*dt, firstSpot, secondSpot)*dt +
+					secondModel->diffusion((i - 1)*dt, firstSpot, secondSpot) *sqrtdt *
+					(corr * z1 + std::sqrt(1.0 - (corr * corr)) * z2) +
+					0.5*corr*firstModel->diffusion((i - 1)*dt, firstSpot, secondSpot)*
+					((secondModel->diffusion((i - 1)*dt, firstSpot + 0.5*stp, secondSpot) -
+						secondModel->diffusion((i - 1)*dt, firstSpot - 0.5*stp, secondSpot)) / stp)*
+						dt * ((z1)*(z1)-1.0) +
+					0.5 * secondModel->diffusion((i - 1)*dt, firstSpot, secondSpot)*
+					((secondModel->diffusion((i - 1)*dt, firstSpot, secondSpot + 0.5*stp) -
+						secondModel->diffusion((i - 1)*dt, firstSpot, secondSpot - 0.5*stp)) / stp)*
+					dt * ((corr*z1 + std::sqrt(1.0 - corr * corr)*z2)*
+					(corr*z1 + std::sqrt(1.0 - corr * corr)*z2) - 1.0) +
+					std::sqrt(1.0 - corr *corr)*
+					firstModel->diffusion((i - 1)*dt, firstSpot, secondSpot)*
+					((secondModel->diffusion((i - 1)*dt, firstSpot + 0.5*stp, secondSpot) -
+						secondModel->diffusion((i - 1)*dt, firstSpot - 0.5*stp, secondSpot)) / stp) *
+					dt*z1*z2;
 
-				path[i] = firstSpotNew;
+				path0[i] = firstSpotNew;
+				path1[i] = secondSpotNew;
 				firstSpot = firstSpotNew;
 				secondSpot = secondSpotNew;
 			}
-			return path;
+			return std::make_pair(path0, path1);
 		}
 
-		PathValuesType<T> simulateWithTimePoints(std::random_device::result_type seed, TimePointsType<T> &timePoints)override {
+		std::pair<PathValuesType<T>, PathValuesType<T>> simulateWithTimePoints(std::random_device::result_type seed, TimePointsType<T> &timePoints)override {
 			this->mt_.seed(seed);
 			T z1{};
 			T z2{};
 			assert(!timePoints.empty());
-			PathValuesType<T> path(timePoints.size());
+			PathValuesType<T> path0(timePoints.size());
+			PathValuesType<T> path1(timePoints.size());
 			auto firstModel = std::get<0>(this->model_);
 			auto secondModel = std::get<1>(this->model_);
-			path[0] = firstModel->initCondition();
+			path0[0] = firstModel->initCondition();
+			path1[0] = secondModel->initCondition();
 			auto firstSpot = firstModel->initCondition();
 			T firstSpotNew{};
 			auto secondSpot = secondModel->initCondition();
 			T secondSpotNew{};
+			T dt{};
+			T tp{};
+			T const stp{ this->step_ };
+			T const corr{ this->correlation_ };
 
-			for (std::size_t i = 1; i < path.size(); ++i) {
+			for (std::size_t i = 1; i < path0.size(); ++i) {
 				z1 = normal1_(mt_);
 				z2 = normal2_(mt_);
+				dt = timePoints[i] - timePoints[i - 1];
+				tp = timePoints[i - 1];
 
 				firstSpotNew = firstSpot +
-					firstModel->drift(timePoints[i - 1], firstSpot, secondSpot)*(timePoints[i] - timePoints[i - 1]) +
-					firstModel->diffusion(timePoints[i - 1], firstSpot, secondSpot) *
-					std::sqrt(timePoints[i] - timePoints[i - 1]) * z1 +
-					0.5*firstModel->diffusion(timePoints[i - 1], firstSpot, secondSpot) *
-					((firstModel->diffusion(timePoints[i - 1], firstSpot + 0.5*(this->step_), secondSpot) -
-						firstModel->diffusion(timePoints[i - 1], firstSpot - 0.5*(this->step_), secondSpot)) / (this->step_))*
-						(timePoints[i] - timePoints[i - 1])*((z1)*(z1)-1.0) +
-					0.5*(this->correlation_)*secondModel->diffusion(timePoints[i - 1], firstSpot, secondSpot) *
-					((firstModel->diffusion(timePoints[i - 1], firstSpot, secondSpot + 0.5*(this->step_)) -
-						firstModel->diffusion(timePoints[i - 1], firstSpot, secondSpot - 0.5*(this->step_))) / (this->step_)) *
-						(timePoints[i] - timePoints[i - 1])*((z1)*(z1)-1.0) +
-					std::sqrt(1.0 - (this->correlation_)*(this->correlation_))*
-					secondModel->diffusion(timePoints[i - 1], firstSpot, secondSpot)*
-					((firstModel->diffusion(timePoints[i - 1], firstSpot, secondSpot + 0.5*(this->step_)) -
-						firstModel->diffusion(timePoints[i - 1], firstSpot, secondSpot - 0.5*(this->step_))) / (this->step_)) *
-						(timePoints[i] - timePoints[i - 1])*z1*z2;
+					firstModel->drift(tp, firstSpot, secondSpot)*dt +
+					firstModel->diffusion(tp, firstSpot, secondSpot) *
+					std::sqrt(dt) * z1 +
+					0.5*firstModel->diffusion(tp, firstSpot, secondSpot) *
+					((firstModel->diffusion(tp, firstSpot + 0.5*stp, secondSpot) -
+						firstModel->diffusion(tp, firstSpot - 0.5*stp, secondSpot)) / stp)*
+						dt*((z1)*(z1)-1.0) +
+					0.5*corr*secondModel->diffusion(tp, firstSpot, secondSpot) *
+					((firstModel->diffusion(tp, firstSpot, secondSpot + 0.5*stp) -
+						firstModel->diffusion(tp, firstSpot, secondSpot - 0.5*stp)) / stp) *
+						dt*((z1)*(z1)-1.0) +
+					std::sqrt(1.0 - corr * corr)*
+					secondModel->diffusion(tp, firstSpot, secondSpot)*
+					((firstModel->diffusion(tp, firstSpot, secondSpot + 0.5*stp) -
+						firstModel->diffusion(tp, firstSpot, secondSpot - 0.5*stp)) / stp) *
+						dt*z1*z2;
 
 				secondSpotNew = secondSpot +
-					secondModel->drift(timePoints[i - 1], firstSpot, secondSpot)*(timePoints[i] - timePoints[i - 1]) +
-					secondModel->diffusion(timePoints[i - 1], firstSpot, secondSpot) *
-					std::sqrt((timePoints[i] - timePoints[i - 1])) *
-					(this->correlation_ * z1 + std::sqrt(1.0 - (this->correlation_ * this->correlation_)) * z2) +
-					0.5*(this->correlation_)*firstModel->diffusion(timePoints[i - 1], firstSpot, secondSpot)*
-					((secondModel->diffusion(timePoints[i - 1], firstSpot + 0.5*(this->step_), secondSpot) -
-						secondModel->diffusion(timePoints[i - 1], firstSpot - 0.5*(this->step_), secondSpot)) / (this->step_))*
-						(timePoints[i] - timePoints[i - 1]) * ((z1)*(z1)-1.0) +
-					0.5 * secondModel->diffusion(timePoints[i - 1], firstSpot, secondSpot)*
-					((secondModel->diffusion(timePoints[i - 1], firstSpot, secondSpot + 0.5*(this->step_)) -
-						secondModel->diffusion(timePoints[i - 1], firstSpot, secondSpot - 0.5*(this->step_))) / (this->step_))*
-						(timePoints[i] - timePoints[i - 1]) * (((this->correlation_)*z1 + std::sqrt(1.0 - (this->correlation_)*(this->correlation_))*z2)*
-					((this->correlation_)*z1 + std::sqrt(1.0 - (this->correlation_)*(this->correlation_))*z2) - 1.0) +
-					std::sqrt(1.0 - (this->correlation_)*(this->correlation_))*
-					firstModel->diffusion(timePoints[i - 1], firstSpot, secondSpot)*
-					((secondModel->diffusion(timePoints[i - 1], firstSpot + 0.5*(this->step_), secondSpot) -
-						secondModel->diffusion(timePoints[i - 1], firstSpot - 0.5*(this->step_), secondSpot)) / (this->step_)) *
-						(timePoints[i] - timePoints[i - 1])*z1*z2;
+					secondModel->drift(tp, firstSpot, secondSpot)*dt +
+					secondModel->diffusion(tp, firstSpot, secondSpot) *
+					std::sqrt(dt) *
+					(corr * z1 + std::sqrt(1.0 - (corr * corr)) * z2) +
+					0.5*corr*firstModel->diffusion(tp, firstSpot, secondSpot)*
+					((secondModel->diffusion(tp, firstSpot + 0.5*stp, secondSpot) -
+						secondModel->diffusion(tp, firstSpot - 0.5*stp, secondSpot)) / stp)*
+						dt * ((z1)*(z1)-1.0) +
+					0.5 * secondModel->diffusion(tp, firstSpot, secondSpot)*
+					((secondModel->diffusion(tp, firstSpot, secondSpot + 0.5*stp) -
+						secondModel->diffusion(tp, firstSpot, secondSpot - 0.5*stp)) / stp)*
+						dt * ((corr*z1 + std::sqrt(1.0 - corr * corr)*z2)*
+					(corr*z1 + std::sqrt(1.0 - corr * corr)*z2) - 1.0) +
+					std::sqrt(1.0 - corr * corr)*
+					firstModel->diffusion(tp, firstSpot, secondSpot)*
+					((secondModel->diffusion(tp, firstSpot + 0.5*stp, secondSpot) -
+						secondModel->diffusion(tp, firstSpot - 0.5*stp, secondSpot)) / stp) *
+						dt*z1*z2;
 
-				path[i] = firstSpotNew;
+				path0[i] = firstSpotNew;
+				path1[i] = secondSpotNew;
 				firstSpot = firstSpotNew;
 				secondSpot = secondSpotNew;
 			}
-			return path;
+			return std::make_pair(path0,path1);
 		}
 
 

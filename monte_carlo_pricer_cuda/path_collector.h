@@ -92,7 +92,7 @@ namespace path_collector {
 		}
 
 		T* data(std::size_t factorIdx)const {
-			assert((factorIndex >= 0 && factorIndex <= 1));
+			assert((factorIdx >= 0 && factorIdx <= 1));
 			if (factorIdx == 0)return factorPaths1_.get();
 			return factorPaths2_.get();
 		}
@@ -107,7 +107,7 @@ template<typename T>
 void path_collector::PathCollector<1, T>::timeSlicing(std::vector<std::vector<T>> &result) {
 
 	concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
-		std::vector<double> slice(this->numberPaths_);
+		std::vector<T> slice(this->numberPaths_);
 		for (std::size_t p = 0; p < slice.size(); ++p) {
 			slice[p] = std::move(factorPaths_.get()[p + slice.size()*idx]);
 		}
@@ -131,7 +131,7 @@ template<typename T>
 void path_collector::PathCollector<2, T>::timeSlicing(std::vector<std::vector<T>> &result, std::size_t factorIdx) {
 	if (factorIdx == 0) {
 		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
-			std::vector<double> slice(this->numberPaths_);
+			std::vector<T> slice(this->numberPaths_);
 			for (std::size_t p = 0; p < slice.size(); ++p) {
 				slice[p] = std::move(factorPaths1_.get()[p + slice.size()*idx]);
 			}
@@ -140,7 +140,7 @@ void path_collector::PathCollector<2, T>::timeSlicing(std::vector<std::vector<T>
 	}
 	else if (factorIdx == 1) {
 		concurrency::parallel_for(std::size_t(0), result.size(), [&](std::size_t idx) {
-			std::vector<double> slice(this->numberPaths_);
+			std::vector<T> slice(this->numberPaths_);
 			for (std::size_t p = 0; p < slice.size(); ++p) {
 				slice[p] = std::move(factorPaths2_.get()[p + slice.size()*idx]);
 			}

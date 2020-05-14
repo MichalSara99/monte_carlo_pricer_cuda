@@ -5,6 +5,8 @@
 #include"mc_types.h"
 #include"fdm_scheme.h"
 #include"sde.h"
+#include<memory>
+#include"path_collector.h"
 #include<thread>
 #include<future>
 
@@ -15,6 +17,7 @@ namespace finite_difference_method {
 	using mc_types::TimePointsType;
 	using mc_types::FDMScheme;
 	using sde::Sde;
+	using path_collector::PathCollector;
 
 
 	template<std::size_t FactorCount, typename T, typename ...Ts>
@@ -62,7 +65,8 @@ namespace finite_difference_method {
 			}
 		}
 
-		virtual PathValuesType<PathValuesType<T>> operator()(std::size_t iterations, FDMScheme scheme = FDMScheme::EulerScheme) = 0;
+		virtual std::shared_ptr<PathCollector<1,T>> 
+			operator()(std::size_t iterations, FDMScheme scheme = FDMScheme::EulerScheme) = 0;
 
 	};
 
@@ -134,7 +138,8 @@ namespace finite_difference_method {
 			}
 		}
 
-		virtual PathValuesType<PathValuesType<T>> operator()(std::size_t iterations, FDMScheme scheme = FDMScheme::EulerScheme) = 0;
+		virtual std::shared_ptr<PathCollector<2, T>>
+			operator()(std::size_t iterations, FDMScheme scheme = FDMScheme::EulerScheme) = 0;
 	};
 
 
@@ -165,11 +170,11 @@ namespace finite_difference_method {
 		Fdm(ISde<T, T, T> const &isde, T const &init, TimePointsType<T> const &timePoints)
 			:FdmBuilder<1, T, T, T>{ isde,init,timePoints } {}
 
-		PathValuesType<PathValuesType<T>> operator()(std::size_t iterations,
-			FDMScheme scheme = FDMScheme::EulerScheme)override {
+		std::shared_ptr<PathCollector<1,T>> 
+			operator()(std::size_t iterations,FDMScheme scheme = FDMScheme::EulerScheme)override {
 
-			asyncKernel<T, std::random_device::result_type> asyncGenerator = nullptr;
-			asyncKernel<T, std::random_device::result_type, TimePointsType<T>&> asyncGeneratorTP = nullptr;
+			asyncKernel1<T, std::random_device::result_type> asyncGenerator = nullptr;
+			asyncKernel1<T, std::random_device::result_type, TimePointsType<T>&> asyncGeneratorTP = nullptr;
 			T delta = (this->terminationTime_ / static_cast<T>(this->numberSteps_));
 
 			switch (scheme) {
@@ -205,27 +210,43 @@ namespace finite_difference_method {
 
 			PathValuesType<std::future<PathValuesType<T>>> futures;
 			futures.reserve(iterations);
-
+			std::size_t numberSteps{ 0 };
 			if (this->timePointsOn_ == false) {
+				numberSteps = this->numberSteps_;
 				for (std::size_t i = 0; i < iterations; ++i) {
 					futures.emplace_back(std::async(std::launch::async, asyncGenerator, rd_()));
 				}
 			}
 			else if (this->timePointsOn_ == true) {
+				numberSteps = this->timePoints_.size();
 				for (std::size_t i = 0; i < iterations; ++i) {
 					futures.emplace_back(std::async(std::launch::async, asyncGeneratorTP, rd_(), std::ref(this->timePoints_)));
 				}
 			}
 
-
-			PathValuesType<PathValuesType<T>> paths;
-			paths.reserve(iterations);
-
+			// allocate host memory:
+			T* h_paths = (T*)malloc(sizeof(T)*iterations*numberSteps);
+			size_t idx{ 0 };
 			for (auto &path : futures) {
-				paths.emplace_back(std::move(path.get()));
+				auto &first = path.get();
+				std::copy(first.begin(), first.end(), (h_paths + idx * numberSteps));
+				idx++;
 			}
 
-			return paths;
+			//PathValuesType<PathValuesType<T>> paths;
+			//paths.reserve(iterations);
+
+			//for (auto &path : futures) {
+			//	paths.emplace_back(std::move(path.get()));
+			//}
+
+			//return paths;
+
+			// wrap the raw pointer into unique_ptr:
+			std::unique_ptr<T> uptr(h_paths);
+
+			return std::shared_ptr<PathCollector<1, T>>
+				(new PathCollector<1, T>{ std::move(uptr),iterations,numberSteps });
 		}
 
 	};
@@ -268,11 +289,11 @@ namespace finite_difference_method {
 			correlation } {}
 
 
-		PathValuesType<PathValuesType<T>> operator()(std::size_t iterations,
-			FDMScheme scheme = FDMScheme::EulerScheme)override {
+		std::shared_ptr<PathCollector<2, T>>
+			operator()(std::size_t iterations,FDMScheme scheme = FDMScheme::EulerScheme)override {
 
-			asyncKernel<T, std::random_device::result_type> asyncGenerator = nullptr;
-			asyncKernel<T, std::random_device::result_type, TimePointsType<T>&> asyncGeneratorTP = nullptr;
+			asyncKernel2<T, std::random_device::result_type> asyncGenerator = nullptr;
+			asyncKernel2<T, std::random_device::result_type, TimePointsType<T>&> asyncGeneratorTP = nullptr;
 			T delta = (this->terminationTime_ / static_cast<T>(this->numberSteps_));
 
 			switch (scheme) {
@@ -310,29 +331,49 @@ namespace finite_difference_method {
 			break;
 			}
 
-			PathValuesType<std::future<PathValuesType<T>>> futures;
+			PathValuesType<std::future<std::pair<PathValuesType<T>, PathValuesType<T>>>> futures;
 			futures.reserve(iterations);
-
+			std::size_t numberSteps{0};
 			if (this->timePointsOn_ == false) {
+				numberSteps = this->numberSteps_;
 				for (std::size_t i = 0; i < iterations; ++i) {
 					futures.emplace_back(std::async(std::launch::async, asyncGenerator, rd_()));
 				}
 			}
 			else if (this->timePointsOn_ == true) {
+				numberSteps = this->timePoints_.size();
 				for (std::size_t i = 0; i < iterations; ++i) {
 					futures.emplace_back(std::async(std::launch::async, asyncGeneratorTP, rd_(), std::ref(this->timePoints_)));
 				}
 			}
 
-
-			PathValuesType<PathValuesType<T>> paths;
-			paths.reserve(iterations);
-
+			// allocate host memory:
+			T* h_paths0 = (T*)malloc(sizeof(T)*iterations*numberSteps);
+			T* h_paths1 = (T*)malloc(sizeof(T)*iterations*numberSteps);
+			size_t idx{ 0 };
 			for (auto &path : futures) {
-				paths.emplace_back(std::move(path.get()));
+				auto &pair = path.get();
+				std::copy(pair.first.begin(), pair.first.end(), (h_paths0 + idx * numberSteps));
+				std::copy(pair.second.begin(), pair.second.end(), (h_paths1 + idx * numberSteps));
+				idx++;
 			}
 
-			return paths;
+
+			// wrap the raw pointer into unique_ptr:
+			std::unique_ptr<T> uptr0(h_paths0);
+			std::unique_ptr<T> uptr1(h_paths1);
+
+			//PathValuesType<PathValuesType<T>> paths;
+			//paths.reserve(iterations);
+
+			//for (auto &path : futures) {
+			//	paths.emplace_back(std::move(path.get()));
+			//}
+
+			//return paths;
+
+			return std::shared_ptr<PathCollector<2, T>>
+				(new PathCollector<2, T>{ std::move(uptr0),std::move(uptr1),iterations,numberSteps });
 		}
 
 	};

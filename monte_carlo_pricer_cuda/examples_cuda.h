@@ -421,7 +421,7 @@ void asianOptionsHestonMilsteinCuda() {
 	double correlation{ 0.0 };
 	double maturityInYears{ 1.0 };
 	std::size_t numberSteps{ 720 }; // two times a day
-	std::size_t simuls{ 250'000 };
+	std::size_t simuls{ 550'000 };
 
 	// Construct the model:
 	sde_builder_cuda::HestonModel<> heston{ mu,sigma,kappa,theta,etha,s_init,var_init,correlation };
@@ -448,6 +448,9 @@ void asianOptionsHestonMilsteinCuda() {
 	double put_sum{ 0.0 };
 	// transform first factor for pricing:
 	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing, 0);
+	for (std::size_t t = 0; t < 30; ++t) {
+		std::cout << paths_euler[t][719] << "\n";
+	}
 	for (auto const &path : paths_euler) {
 		call_sum += call_payoff(path);
 		put_sum += put_payoff(path);

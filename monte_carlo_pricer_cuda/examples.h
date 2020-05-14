@@ -38,10 +38,13 @@ void europeanOptionsGBMEuler() {
 	// Construct the engine: 
 	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_gbm(simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for GBM<1> ("<<simuls<<") took: " << end << " seconds.\n";
 
+
+	// transform for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	// last values:
 	for (std::size_t t = 0; t < 30; ++t) {
 		std::cout << t << " paths: \n";
@@ -96,9 +99,13 @@ void europeanOptionsGBMMilstein() {
 	// Construct the engine: 
 	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(simuls, FDMScheme::MilsteinScheme);
+	auto collector = fdm_gbm(simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
+
+
+	// transform for pricing:
+	auto paths_milstein= collector->transform(mc_types::SlicingType::PerPathSlicing);
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
@@ -112,13 +119,13 @@ void europeanOptionsGBMMilstein() {
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
-	for (auto const &path : paths_euler) {
+	for (auto const &path : paths_milstein) {
 		lastPrice = path.back();
 		call_sum += call_payoff(lastPrice);
 		put_sum += put_payoff(lastPrice);
 	}
-	auto call_avg = (call_sum / static_cast<double>(paths_euler.size()));
-	auto put_avg = (put_sum / static_cast<double>(paths_euler.size()));
+	auto call_avg = (call_sum / static_cast<double>(paths_milstein.size()));
+	auto put_avg = (put_sum / static_cast<double>(paths_milstein.size()));
 
 	std::cout << "Call price: " << ((std::exp(-1.0*rate*maturityInYears))*call_avg) << "\n";
 	std::cout << "Put price: " << ((std::exp(-1.0*rate*maturityInYears))*put_avg) << "\n";
@@ -152,10 +159,12 @@ void europeanOptionsHestonEuler() {
 	// Construct the engine: 
 	Fdm<sde_builder::HestonModel<>::FactorCount, double> fdm_heston{ heston.model(),maturityInYears,correlation,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_heston(simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
+	// transform for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing,0);
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
 	PlainCallStrategy<> call_strategy{ call_strike };
@@ -209,10 +218,13 @@ void europeanOptionsHestonMilstein() {
 	// Construct the engine: 
 	Fdm<sde_builder::HestonModel<>::FactorCount, double> fdm_heston{ heston.model(),maturityInYears,correlation,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(simuls, FDMScheme::MilsteinScheme);
+	auto collector = fdm_heston(simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
+
+	// transform for pricing:
+	auto paths_milstein = collector->transform(mc_types::SlicingType::PerPathSlicing,0);
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
 	PlainCallStrategy<> call_strategy{ call_strike };
@@ -225,13 +237,13 @@ void europeanOptionsHestonMilstein() {
 	double lastPrice{ 0.0 };
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
-	for (auto const &path : paths_euler) {
+	for (auto const &path : paths_milstein) {
 		lastPrice = path.back();
 		call_sum += call_payoff(lastPrice);
 		put_sum += put_payoff(lastPrice);
 	}
-	auto call_avg = (call_sum / static_cast<double>(paths_euler.size()));
-	auto put_avg = (put_sum / static_cast<double>(paths_euler.size()));
+	auto call_avg = (call_sum / static_cast<double>(paths_milstein.size()));
+	auto put_avg = (put_sum / static_cast<double>(paths_milstein.size()));
 
 	std::cout << "Call price: " << ((std::exp(-1.0*mu*maturityInYears))*call_avg) << "\n";
 	std::cout << "Put price: " << ((std::exp(-1.0*mu*maturityInYears))*put_avg) << "\n";
@@ -259,10 +271,12 @@ void asianOptionsGBMEuler() {
 	// Construct the engine: 
 	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_gbm(simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
 
+	// transform for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
 	AsianAvgCallStrategy<> call_strategy{ call_strike };
@@ -307,10 +321,12 @@ void asianOptionsGBMMilstein() {
 	// Construct the engine: 
 	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),maturityInYears,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(simuls, FDMScheme::MilsteinScheme);
+	auto collector = fdm_gbm(simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
 
+	// transform for pricing:
+	auto milstein_paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
 	AsianAvgCallStrategy<> call_strategy{ call_strike };
@@ -322,12 +338,12 @@ void asianOptionsGBMMilstein() {
 
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
-	for (auto const &path : paths_euler) {
+	for (auto const &path : milstein_paths) {
 		call_sum += call_payoff(path);
 		put_sum += put_payoff(path);
 	}
-	auto call_avg = (call_sum / static_cast<double>(paths_euler.size()));
-	auto put_avg = (put_sum / static_cast<double>(paths_euler.size()));
+	auto call_avg = (call_sum / static_cast<double>(milstein_paths.size()));
+	auto put_avg = (put_sum / static_cast<double>(milstein_paths.size()));
 
 	std::cout << "Call price: " << ((std::exp(-1.0*rate*maturityInYears))*call_avg) << "\n";
 	std::cout << "Put price: " << ((std::exp(-1.0*rate*maturityInYears))*put_avg) << "\n";
@@ -361,10 +377,13 @@ void asianOptionsHestonEuler() {
 	// Construct the engine: 
 	Fdm<sde_builder::HestonModel<>::FactorCount, double> fdm_heston{ heston.model(),maturityInYears,correlation,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_heston(simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
+
+	// transform for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing,0);
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
 	AsianAvgCallStrategy<> call_strategy{ call_strike };
@@ -415,10 +434,12 @@ void asianOptionsHestonMilstein() {
 	// Construct the engine: 
 	Fdm<sde_builder::HestonModel<>::FactorCount, double> fdm_heston{ heston.model(),maturityInYears,correlation,numberSteps };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(simuls, FDMScheme::MilsteinScheme);
+	auto collector = fdm_heston(simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
+	// transform for pricing:
+	auto milstein_paths = collector->transform(mc_types::SlicingType::PerPathSlicing,0);
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
 	AsianAvgCallStrategy<> call_strategy{ call_strike };
@@ -430,12 +451,12 @@ void asianOptionsHestonMilstein() {
 
 	double call_sum{ 0.0 };
 	double put_sum{ 0.0 };
-	for (auto const &path : paths_euler) {
+	for (auto const &path : milstein_paths) {
 		call_sum += call_payoff(path);
 		put_sum += put_payoff(path);
 	}
-	auto call_avg = (call_sum / static_cast<double>(paths_euler.size()));
-	auto put_avg = (put_sum / static_cast<double>(paths_euler.size()));
+	auto call_avg = (call_sum / static_cast<double>(milstein_paths.size()));
+	auto put_avg = (put_sum / static_cast<double>(milstein_paths.size()));
 
 	std::cout << "Call price: " << ((std::exp(-1.0*mu*maturityInYears))*call_avg) << "\n";
 	std::cout << "Put price: " << ((std::exp(-1.0*mu*maturityInYears))*put_avg) << "\n";
@@ -483,9 +504,12 @@ void europeanOptionsGBMEulerTP() {
 	// Construct the engine: 
 	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),timePoints };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_gbm(simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_gbm(simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
+
+	// transform for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing);
 
 	// last values:
 	for (std::size_t t = 0; t < 30; ++t) {
@@ -556,10 +580,12 @@ void europeanOptionsGBMMilsteinTP() {
 	// Construct the engine: 
 	Fdm<sde_builder::GeometricBrownianMotion<>::FactorCount, double> fdm_gbm{ gbm.model(),timePoints };
 	auto start = std::chrono::system_clock::now();
-	auto paths_milstein = fdm_gbm(simuls, FDMScheme::MilsteinScheme);
+	auto collector = fdm_gbm(simuls, FDMScheme::MilsteinScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein scheme for GBM<1> (" << simuls << ") took: " << end << " seconds.\n";
 
+	// transform for pricing:
+	auto paths_milstein = collector->transform(mc_types::SlicingType::PerPathSlicing);
 
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
@@ -628,10 +654,12 @@ void europeanOptionsHestonEulerTP() {
 	// Construct the engine: 
 	Fdm<sde_builder::HestonModel<>::FactorCount, double> fdm_heston{ heston.model(),timePoints };
 	auto start = std::chrono::system_clock::now();
-	auto paths_euler = fdm_heston(simuls, FDMScheme::EulerScheme);
+	auto collector = fdm_heston(simuls, FDMScheme::EulerScheme);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler scheme for Heston<2> (" << simuls << ") took: " << end << " seconds.\n";
 
+	// transform for pricing:
+	auto paths_euler = collector->transform(mc_types::SlicingType::PerPathSlicing,0);
 	// Construct call payoff of the option:
 	double call_strike{ 100.0 };
 	PlainCallStrategy<> call_strategy{ call_strike };
