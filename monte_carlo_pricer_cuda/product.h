@@ -7,16 +7,15 @@
 
 namespace product {
 
+
 	template<typename T>
 	class OptionProduct {
 	public:
 		virtual ~OptionProduct(){}
 
-		virtual T price(T underlying) = 0;
-		
-		virtual T operator()(T underlying) {
-			return price(underlying);
-		}
+		virtual T call(T underlying) = 0;
+
+		virtual T put(T underlying) = 0;
 	};
 
 

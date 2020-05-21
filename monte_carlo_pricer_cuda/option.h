@@ -2,61 +2,59 @@
 #if !defined(_OPTION)
 #define _OPTION
 
-#include"product.h"
-#include"option_utilities.h"
+
+#include"option_family.h"
 
 namespace option {
 
-	using product::OptionProduct;
-	using option_utilities::BlackScholesMertonComponents;
-	using option_utilities::Distribution;
-	using option_utilities::DistributionType;
+	using namespace option_family;
 
 
-
-	// =============================================================================
-	// ====================== General Black-Scholes-Merton Option ==================
-	// =============================================================================
-
-	template<typename T>
-	class BlackScholesMertonOption :public OptionProduct<T> {
-	protected:
-		T costOfCarry_;
-		T settleRate_;
-		T optionRiskFreeRate_;
-		T strike_;
-		T timeToSettlement_;
-		T timeToMaturity_;
-		T volatility_;
-		std::function<T(T)> d1 = BlackScholesMertonComponents<T>::d1();
-		std::function<T(T)> d2 = BlackScholesMertonComponents<T>::d2();
-		std::function<T(T)> cdf = Distribution<T>::normal(DistributionType::CDF);
+	template<typename T = double,
+		template<typename> typename OptionFamily = black_scholes_merton::BlackScholesMertonOption>
+	class EuropeanCall {
+	private:
+		OptionFamily<T> family_;
 
 	public:
-		explicit BlackScholesMertonOption() = default;
-		explicit BlackScholesMertonOption(T costOfCarry, T settleRate,
-			T riskFreeRate, T strike, T timeToSettlement,
-			T timeToMaturity, T volatility)
-			:costOfCarry_{ costOfCarry }, settleRate_{ settleRate },
-			riskFreeRate_{ riskFreeRate }, strike_{ strike },
-			timeToSettlement_{ timeToSettlement }, timeToMaturity_{ timeToMaturity },
-			volatility_{ volatility } {}
+		explicit EuropeanCall(){}
 
-		inline void setCostOfCarry(T value) { costOfCarry_ = value; }
-		inline void setSettleRate(T value) { settleRate_ = value; }
-		inline void setOptionRiskFreeRate(T value) { optionRiskFreeRate_ = value; }
-		inline void setStrike(T value) { strike_ = value; }
-		inline void setTimeToSettlement(T value) { timeToSettlement_ = value; }
-		inline void setTimeToMaturity(T value) { timeToMaturity_ = value; }
-		inline void setVolatility(T value) { volatility_ = value; }
+		inline void setCostOfCarry(T value) {family_.setCostOfCarry(value);}
+		inline void setSettleRate(T value) { family_.setSettleRate(value); }
+		inline void setOptionRiskFreeRate(T value) {family_.setOptionRiskFreeRate(value);}
+		inline void setStrike(T value) { family_.setStrike(value); }
+		inline void setTimeToSettlement(T value) { family_.setTimeToSettlement(value); }
+		inline void setTimeToMaturity(T value) { family_.setTimeToMaturity(value); }
+		inline void setVolatility(T value) { family_.setVolatility(value); }
+		inline T price(T underlying) { return family_.call(underlying); }
+
+	};
+
+
+	template<typename T = double,
+		template<typename> typename OptionFamily = black_scholes_merton::BlackScholesMertonOption>
+	class EuropeanPut {
+	private:
+		OptionFamily<T> family_;
+
+	public:
+		explicit EuropeanPut() {}
+
+		inline void setCostOfCarry(T value) { family_.setCostOfCarry(value); }
+		inline void setSettleRate(T value) { family_.setSettleRate(value); }
+		inline void setOptionRiskFreeRate(T value) { family_.setOptionRiskFreeRate(value); }
+		inline void setStrike(T value) { family_.setStrike(value); }
+		inline void setTimeToSettlement(T value) { family_.setTimeToSettlement(value); }
+		inline void setTimeToMaturity(T value) { family_.setTimeToMaturity(value); }
+		inline void setVolatility(T value) { family_.setVolatility(value); }
+		inline T price(T underlying) { return family_.put(underlying); }
 
 	};
 
 
 
-	// =============================================================================
-	// ============================ General Barrier Option =========================
-	// =============================================================================
+
+
 
 
 
@@ -65,4 +63,9 @@ namespace option {
 
 
 
+
+
+
 #endif ///_OPTION
+
+
