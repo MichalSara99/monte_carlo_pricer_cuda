@@ -38,6 +38,20 @@ namespace finite_difference_method_cuda {
 			timePointsOn_{ true }
 		{}
 
+		inline TimePointsType<T> timeResolution()const {
+			if (timePointsOn_ == false) {
+				TimePointsType<T> points(numberSteps_ + 1);
+				auto delta = (terminationTime_ / static_cast<T>(numberSteps_));
+				std::size_t i = 0;
+				std::generate(points.begin(), points.end(), [&i, &delta]() {return delta * i++; });
+				return points;
+			}
+			else {
+				return timePoints_;
+			}
+		}
+
+
 		template<typename SDECudaModel,
 				typename = typename std::enable_if<SDECudaModel::FactorCount == 1>::type>
 		std::shared_ptr<path_collector::PathCollector<1, T>> const
@@ -73,6 +87,19 @@ namespace finite_difference_method_cuda {
 			:timePoints_{ timePoints },
 			timePointsOn_{ true }
 		{}
+
+		inline TimePointsType<T> timeResolution()const {
+			if (timePointsOn_ == false) {
+				TimePointsType<T> points(numberSteps_ + 1);
+				auto delta = (terminationTime_ / static_cast<T>(numberSteps_));
+				std::size_t i = 0;
+				std::generate(points.begin(), points.end(), [&i, &delta]() {return delta * i++; });
+				return points;
+			}
+			else {
+				return timePoints_;
+			}
+		}
 
 		template<typename SDECudaModel,
 			typename = typename std::enable_if<SDECudaModel::FactorCount == 2>::type>

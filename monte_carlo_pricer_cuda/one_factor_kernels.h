@@ -18,9 +18,9 @@ namespace kernels {
 			// ==========================================================
 
 			template<typename SDEBuilder,
-					typename T = SDEBuilder::value_type>
-			__global__
-			void generatePathsKernel1D(SDEBuilder sdeBuilder,T* d_paths, curandState_t *states,
+				typename T = SDEBuilder::value_type>
+				__global__
+				void generatePathsKernel1D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
 					unsigned int nPaths, unsigned int nSteps, T dt) {
 				// path idx:
 				unsigned int const t_idx = blockDim.x*blockIdx.x + threadIdx.x;
@@ -42,10 +42,10 @@ namespace kernels {
 
 
 			template<typename SDEBuilder,
-					typename T = SDEBuilder::value_type>
-			__global__
-			void generatePathsKernel2D(SDEBuilder sdeBuilder,T* d_paths, curandState_t *states,
-					unsigned int nPathsWidth,unsigned int nPathsHeight, unsigned int nSteps, T dt) {
+				typename T = SDEBuilder::value_type>
+				__global__
+				void generatePathsKernel2D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
+					unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nSteps, T dt) {
 				// path idx:
 				unsigned int const c_idx = blockDim.x*blockIdx.x + threadIdx.x;
 				unsigned int const r_idx = blockDim.y*blockIdx.y + threadIdx.y;
@@ -72,7 +72,7 @@ namespace kernels {
 				typename T = SDEBuilder::value_type>
 				__global__
 				void generatePathsKernel3D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
-					unsigned int nPathsWidth, unsigned int nPathsHeight,unsigned int nPathDepth,
+					unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathDepth,
 					unsigned int nSteps, T dt) {
 				// path idx:
 				unsigned int const c_idx = blockDim.x*blockIdx.x + threadIdx.x;
@@ -240,8 +240,8 @@ namespace kernels {
 				unsigned int i{ 0 };
 				T last = sdeBuilder.init();
 				d_paths[t_idx] = last;
-				
-				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths,++i) {
+
+				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z = curand_normal(&states[t_idx]);
 					last = last + sdeBuilder.drift(i*dt, last)*dt +
 						sdeBuilder.diffusion(i*dt, last)*sqrtf(dt)*z +
@@ -256,7 +256,7 @@ namespace kernels {
 
 			template<typename SDEBuilder,
 				typename T = SDEBuilder::value_type>
-			__global__
+				__global__
 				void generatePathsKernel3D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathDepth,
 					unsigned int nSteps, T dt) {
@@ -308,7 +308,7 @@ namespace kernels {
 				T last = sdeBuilder.init();
 				d_paths[t_idx] = last;
 
-				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths,++i) {
+				for (unsigned int t = t_idx + nPaths; t < total; t += nPaths, ++i) {
 					z = curand_normal(&states[t_idx]);
 					dt = d_times[i + 1] - d_times[i];
 					last = last + sdeBuilder.drift(d_times[i], last)*dt +
@@ -324,7 +324,7 @@ namespace kernels {
 
 			template<typename SDEBuilder,
 				typename T = SDEBuilder::value_type>
-			__global__
+				__global__
 				void generatePathsKernel2D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight,
 					T const *d_times, unsigned int size) {
@@ -359,7 +359,7 @@ namespace kernels {
 
 			template<typename SDEBuilder,
 				typename T = SDEBuilder::value_type>
-			__global__
+				__global__
 				void generatePathsKernel3D(SDEBuilder sdeBuilder, T* d_paths, curandState_t *states,
 					unsigned int nPathsWidth, unsigned int nPathsHeight, unsigned int nPathDepth,
 					T const *d_times, unsigned int size) {
@@ -372,7 +372,7 @@ namespace kernels {
 				unsigned int const total = nPaths * size;
 				if (t_idx >= nPaths)
 					return;
-				
+
 				T z{};
 				T dt{};
 				unsigned int i{ 0 };

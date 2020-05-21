@@ -18,19 +18,25 @@ void gbm_cuda() {
 	double s{ 100.0 };
 
 	double maturity{ 1.0 };
-	std::size_t numberSteps{ 2 * 360 };
-	std::size_t numberIterations{ 350'000 };
+	std::size_t numberSteps{ 360 };
+	std::size_t numberIterations{ 500'000 };
 	double strike{ 100.0 };
 
 	sde_builder_cuda::GeometricBrownianMotion<double> gbm{ rate,sigma,s };
 	FdmCUDA<1, double> fdm{ maturity,numberSteps };
+	auto timeResolution = fdm.timeResolution();
+
+	for (auto const &t : timeResolution) {
+		std::cout << t << ", ";
+	}
+
+	std::cout << "\n";
 
 	{
 		auto begin = std::chrono::system_clock::now();
-		auto collector = fdm(gbm, numberIterations,FDMScheme::MilsteinScheme);
+		auto collector = fdm(gbm, numberIterations,FDMScheme::MilsteinScheme,GPUConfiguration::Grid2D);
 		auto end = std::chrono::system_clock::now();
 		std::cout << "Generating on 1D grid took: " << std::chrono::duration<double>(end - begin).count() << "\n";
-
 
 		std::cout << "===============================\n";
 
@@ -39,8 +45,8 @@ void gbm_cuda() {
 		double sum_call{ 0.0 };
 		double sum_put{ 0.0 };
 		for (std::size_t t = 0; t < paths.size(); ++t) {
-			sum_call += max(0.0, paths[t][719] - strike);
-			sum_put += max(0.0, strike - paths[t][719]);
+			sum_call += max(0.0, paths[t][159] - strike);
+			sum_put += max(0.0, strike - paths[t][159]);
 		}
 		auto call_price = std::exp(-1.0*rate*maturity)*(sum_call / static_cast<double>(paths.size()));
 		auto put_price = std::exp(-1.0*rate*maturity)*(sum_put / static_cast<double>(paths.size()));
@@ -59,7 +65,7 @@ void gbm_cuda() {
 		// transform for pricing:
 		auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 		for (std::size_t t = 0; t < 30; ++t) {
-			std::cout << paths[t][719] << "\n";
+			std::cout << paths[t][159] << "\n";
 		}
 
 
@@ -68,8 +74,8 @@ void gbm_cuda() {
 		double sum_call{ 0.0 };
 		double sum_put{ 0.0 };
 		for (std::size_t t = 0; t < paths.size(); ++t) {
-			sum_call += max(0.0, paths[t][719] - strike);
-			sum_put += max(0.0, strike - paths[t][719]);
+			sum_call += max(0.0, paths[t][159] - strike);
+			sum_put += max(0.0, strike - paths[t][159]);
 		}
 		auto call_price = std::exp(-1.0*rate*maturity)*(sum_call / static_cast<double>(paths.size()));
 		auto put_price = std::exp(-1.0*rate*maturity)*(sum_put / static_cast<double>(paths.size()));
@@ -86,7 +92,7 @@ void gbm_cuda() {
 	std::cout << "=============================\n";
 	auto paths = collector->transform(mc_types::SlicingType::PerPathSlicing);
 	for (std::size_t t = 0; t < 30; ++t) {
-		std::cout << paths[t][719] << "\n";
+		std::cout << paths[t][159] << "\n";
 	}
 
 
@@ -95,8 +101,8 @@ void gbm_cuda() {
 	double sum_call{ 0.0 };
 	double sum_put{ 0.0 };
 	for (std::size_t t = 0; t < paths.size(); ++t) {
-		sum_call += max(0.0, paths[t][719] - strike);
-		sum_put += max(0.0, strike - paths[t][719]);
+		sum_call += max(0.0, paths[t][159] - strike);
+		sum_put += max(0.0, strike - paths[t][159]);
 	}
 	auto call_price = std::exp(-1.0*rate*maturity)*(sum_call / static_cast<double>(paths.size()));
 	auto put_price = std::exp(-1.0*rate*maturity)*(sum_put / static_cast<double>(paths.size()));

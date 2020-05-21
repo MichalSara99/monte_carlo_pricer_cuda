@@ -23,16 +23,16 @@ void fdm_gbm() {
 	auto drift = gbm.drift();
 
 	constexpr std::size_t factors = sde_builder::GeometricBrownianMotion<>::FactorCount;
-	Fdm<factors, double> gbm_fdm{ sde,1.0,2 * 360 };
+	Fdm<factors, double> gbm_fdm{ sde,1.0,160 };
 	auto times = gbm_fdm.timeResolution();
 
 	std::cout << "timing: \n";
 	auto start = std::chrono::system_clock::now();
-	auto euler_collector = gbm_fdm(70'000);
+	auto euler_collector = gbm_fdm(500'000);
 	auto end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Euler took: " << end << " seconds\n";
 	start = std::chrono::system_clock::now();
-	auto milstein_collector = gbm_fdm(70'000, FDMScheme::MilsteinScheme);
+	auto milstein_collector = gbm_fdm(500'000, FDMScheme::MilsteinScheme);
 	end = std::chrono::duration<double>(std::chrono::system_clock::now() - start).count();
 	std::cout << "Milstein took: " << end << " seconds\n";
 	std::cout << "\n";
@@ -42,7 +42,7 @@ void fdm_gbm() {
 	// last values:
 	for (std::size_t t = 0; t < 30; ++t) {
 		std::cout << t << " paths: \n";
-		std::cout << paths_euler[t][319] << ", ";
+		std::cout << paths_euler[t][159] << ", ";
 		std::cout << "\n";
 	}
 	std::cout << "==============================\n";
